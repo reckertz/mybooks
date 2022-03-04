@@ -1,0 +1,33 @@
+{
+  "name": "mybooks",
+  "version": "1.0.0",
+  "description": "scan books with barcode, get information with isbn, store in database sqlite3",
+  "main": "server.js",
+  "scripts": {
+    "test": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reckertz/mybooks.git"
+  },
+  "keywords": [
+    "books",
+    "isbn"
+  ],
+  "author": "Rolf W. Eckertz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/reckertz/mybooks/issues"
+  },
+  "homepage": "https://github.com/reckertz/mybooks#readme",
+  "dependencies": {
+    "async": "^3.2.3",
+    "body-parser": "^1.19.2",
+    "bootstrap": "^5.1.3",
+    "express": "^4.17.3",
+    "jshint": "^2.13.4",
+    "jslint": "^0.12.1",
+    "node-isbn": "^1.6.1",
+    "sqlite3": "^5.0.2"
+  }
+}
