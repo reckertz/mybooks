@@ -1,7 +1,6 @@
 /*jshint esversion:6,laxbreak:true,evil:true,sub:true */
 /*global $,window,module,document,define,root,global,self,var,this,sysbase,uihelper */
 /*global uientry,planetaryjs, */
-
 (function () {
     "use strict";
     //
@@ -86,12 +85,66 @@
                         class: "form-control myscansearch",
                         type: "text",
                         "data-mini": "true",
-                        title: "Barcode Scannen oder eingeben",
-                        value: "0735619670"
+                        title: "Barcode Scannen oder eingeben"
+                        //value: "0735619670"
                     }))
 
                 )
             )
+
+            .append($("<div/>", {
+                    class: "form-group row",
+                    css: {
+                        width: "100%"
+                    }
+                })
+                .append($("<label/>", {
+                    for: "myscanbox",
+                    text: "Box",
+                    class: "col-sm-4 col-form-label"
+                }))
+                .append($("<div/>", {
+                        class: "col-sm-8"
+                    })
+                    .append($("<input/>", {
+                        id: "myscanbox",
+                        class: "form-control myscanbox",
+                        type: "text",
+                        "data-mini": "true",
+                        title: "Box, Regal o.ä. eingeben"
+                        //value: "0735619670"
+                    }))
+                )
+            )
+
+
+            .append($("<div/>", {
+                    class: "form-group row",
+                    css: {
+                        width: "100%"
+                    }
+                })
+                .append($("<label/>", {
+                    for: "myscancomment",
+                    text: "Comment",
+                    class: "col-sm-4 col-form-label"
+                }))
+                .append($("<div/>", {
+                        class: "col-sm-8"
+                    })
+                    .append($("<input/>", {
+                        id: "myscancomment",
+                        class: "form-control myscancomment",
+                        type: "text",
+                        "data-mini": "true",
+                        title: "Kommentar"
+                        //value: "0735619670"
+                    }))
+                )
+            )
+
+
+
             .append($("<div/>", {
                     class: "form-group row",
                     css: {
@@ -111,64 +164,35 @@
                         mybookscan.search();
                     }
                 }))
-            );
 
+            )
+
+            .append($("<div/>", {
+                    class: "row",
+                    css: {
+                        clear: "both",
+                        width: "100%",
+                        "margin-top": "20px"
+                    }
+                })
+                .append($("<ul/>", {
+                    id: "bookhistory"
+                }))
+            );
+        $("#myscansearch").focus();
 
     };
 
 
 
-    $(document).on("change", '.myscansearch', function () {
+    $(document).on("change input", '.myscansearch', function (evt) {
+        evt.preventDefault();
         let isbninput = $(this).val();
-        isbninput = isbninput.replace(/-/g, "");
-        isbninput = isbninput.replace(/ /g, "");
-        if (isbninput.trim().length === 10) {
-            // dedizierte Prüfung
-            let sum = 0;
-            let isbnok = false;
-            for (let i = 0; i < 9; i++) {
-                let num = parseInt(isbninput.substr(i, 1));
-                sum += (i + 1) * num;
-            }
-            let pz = sum % 11;
-            if (pz !== 10) {
-                if (pz !== parseInt(isbninput[9])) {
-                    return; // falsche ISBN-10
-                } else {
-                    $("#mybookscanb1").click();
-                }
-            } else {
-                if (isbninput.substr(9, 1) === "X" || isbninput.substr(9, 1) === "0") {
-                    $("#mybookscanb1").click();
-                }
-            }
+        if (genhelper.isISBN(isbninput)) {
+            $("#mybookscanb1").click();
+            return;
         }
-        if (isbninput.trim().length === 13) {
-            // dedizierte Prüfung
-            let sum = 0;
-            let isbnok = false;
-            for (let i = 0; i < 12; i++) {
-                let num = parseInt(isbninput.substr(i, 1));
-                let z = i + 1;
-                if (z % 2 === 0) {
-                    sum += 3 * num; // geradzahlig
-                } else {
-                    sum += num; // ungeradzahlig
-                }
-                console.log(z + ":" + i + " num:" + num + " sum: " + sum);
-            }
-            //let pz = (10 - sum % 10) % 10;
-            let pz = sum % 10;
-            pz = 10 - pz;
-            pz = pz % 10;
-            console.log(isbninput + "=>" + sum + "=>" + pz);
-            if (pz !==  parseInt(isbninput.substr(12, 1))) {
-                return; // falsche ISBN-13
-            } else {
-                $("#mybookscanb1").click();
-            }
-        }
-
+        
     });
 
     mybookscan.search = function () {
@@ -179,24 +203,37 @@
             crossDomain: false,
             url: "getbyisbn",
             data: {
-                booksearch: booksearch
+                booksearch: booksearch,
+                bookbox: $("#myscanbox").val(),
+                bookcomment: $("#myscancomment").val()
             }
         }).done(function (r1, textStatus, jqXHR) {
             var ret = JSON.parse(r1);
             $("body").css("cursor", "");
             //alert(JSON.parse(ret.book));
-            mybookscan.showBook(ret.book, "#mybookscandata");
+            mybookscan.showBook(ret.booksearch, ret.book, "#mybookscandata");
+            if (ret.error === false) {
+                $("#myscansearch").val("");
+            }
+            $("#myscansearch").focus();
             return;
         }).fail(function (err) {
             alert(err);
+            $("#myscansearch").focus();
             return;
         }).always(function () {
             // nope
         });
     };
 
-    mybookscan.showBook = function (book, container) {
+    mybookscan.showBook = function (booksearch, book, container) {
+        let hasthumb = false;
         $(container).children().remove();
+        $(container)
+            .append($("<br/>"))
+            .append($("<span/>", {
+                html: "ISBN" + " " + booksearch
+            }));
         let bkeys = Object.keys(book);
         for (let ikey = 0; ikey < bkeys.length; ikey++) {
             let fieldname = bkeys[ikey];
@@ -236,6 +273,24 @@
                             }));
                     }
                 }
+            } else if (fieldname === "thumbnail" && book.thumbnail.length > 0 && hasthumb === false) {
+                hasthumb = true;
+                let thumbnail = book.thumbnail;
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<img/>", {
+                        src: thumbnail,
+                        title: fieldname + ": " + thumbnail
+                    }));
+            } else if (fieldname === "smallThumbnail" && book.smallThumbnail.length > 0  && hasthumb === false) {
+                hasthumb = true;
+                let smallThumbnail = book.smallThumbnail;
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<img/>", {
+                        src: smallThumbnail,
+                        title: fieldname + ": " + smallThumbnail
+                    }));
             } else {
                 $(container)
                     .append($("<br/>"))
@@ -244,6 +299,14 @@
                     }));
             }
         }
+        if (typeof book.authors === "string" && book.authors.startsWith("[")) {
+            book.authors = JSON.parse(book.authors);
+        }
+        let authors = book.authors.join(";");
+        $("#bookhistory")
+            .prepend($("<li/>", {
+                html: "<b>" + book.title + " " + (book.subtitle || "") + "</b>" + " " + authors
+            }));
 
     };
 
