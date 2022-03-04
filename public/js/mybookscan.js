@@ -56,21 +56,14 @@
                     }
                 }))
                 .append($("<div/>", {
-                        id: "mybookscandata",
-                        class: "col-11 col-sm-11 col-md-8 col-lg-8",
-                        css: {
-                            height: hr,
-                            "background-color": "lightsteelblue",
-                            overflow: "auto"
-                        }
-                    })
-                    .append($("<table/>", {
-                        id: "mybookscant1",
-                        css: {
-                            width: "100%"
-                        }
-                    }))
-                )
+                    id: "mybookscandata",
+                    class: "col-11 col-sm-11 col-md-8 col-lg-8",
+                    css: {
+                        height: hr,
+                        "background-color": "lightsteelblue",
+                        overflow: "auto"
+                    }
+                }))
             );
 
         $("#mybookscanform")
@@ -90,7 +83,7 @@
                     })
                     .append($("<input/>", {
                         id: "myscansearch",
-                        class: "form-control",
+                        class: "form-control myscansearch",
                         type: "text",
                         "data-mini": "true",
                         title: "Barcode Scannen oder eingeben",
@@ -108,6 +101,7 @@
                 })
                 .append($("<button/>", {
                     class: "button-primary",
+                    id: "mybookscanb1",
                     css: {
                         width: "40%"
                     },
@@ -122,6 +116,61 @@
 
     };
 
+
+
+    $(document).on("change", '.myscansearch', function () {
+        let isbninput = $(this).val();
+        isbninput = isbninput.replace(/-/g, "");
+        isbninput = isbninput.replace(/ /g, "");
+        if (isbninput.trim().length === 10) {
+            // dedizierte Prüfung
+            let sum = 0;
+            let isbnok = false;
+            for (let i = 0; i < 9; i++) {
+                let num = parseInt(isbninput.substr(i, 1));
+                sum += (i + 1) * num;
+            }
+            let pz = sum % 11;
+            if (pz !== 10) {
+                if (pz !== parseInt(isbninput[9])) {
+                    return; // falsche ISBN-10
+                } else {
+                    $("#mybookscanb1").click();
+                }
+            } else {
+                if (isbninput.substr(9, 1) === "X" || isbninput.substr(9, 1) === "0") {
+                    $("#mybookscanb1").click();
+                }
+            }
+        }
+        if (isbninput.trim().length === 13) {
+            // dedizierte Prüfung
+            let sum = 0;
+            let isbnok = false;
+            for (let i = 0; i < 12; i++) {
+                let num = parseInt(isbninput.substr(i, 1));
+                let z = i + 1;
+                if (z % 2 === 0) {
+                    sum += 3 * num; // geradzahlig
+                } else {
+                    sum += num; // ungeradzahlig
+                }
+                console.log(z + ":" + i + " num:" + num + " sum: " + sum);
+            }
+            //let pz = (10 - sum % 10) % 10;
+            let pz = sum % 10;
+            pz = 10 - pz;
+            pz = pz % 10;
+            console.log(isbninput + "=>" + sum + "=>" + pz);
+            if (pz !==  parseInt(isbninput.substr(12, 1))) {
+                return; // falsche ISBN-13
+            } else {
+                $("#mybookscanb1").click();
+            }
+        }
+
+    });
+
     mybookscan.search = function () {
         // API-Aufruf booksearch
         let booksearch = $("#myscansearch").val();
@@ -130,12 +179,13 @@
             crossDomain: false,
             url: "getbyisbn",
             data: {
-            booksearch: booksearch    
+                booksearch: booksearch
             }
         }).done(function (r1, textStatus, jqXHR) {
             var ret = JSON.parse(r1);
             $("body").css("cursor", "");
-            alert(JSON.parse(ret.book));
+            //alert(JSON.parse(ret.book));
+            mybookscan.showBook(ret.book, "#mybookscandata");
             return;
         }).fail(function (err) {
             alert(err);
@@ -143,13 +193,60 @@
         }).always(function () {
             // nope
         });
+    };
 
-
-
-
-
+    mybookscan.showBook = function (book, container) {
+        $(container).children().remove();
+        let bkeys = Object.keys(book);
+        for (let ikey = 0; ikey < bkeys.length; ikey++) {
+            let fieldname = bkeys[ikey];
+            if (fieldname === "previewLink") {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<a/>", {
+                        href: book[fieldname],
+                        target: "_blank",
+                        html: fieldname + ": " + book[fieldname]
+                    }));
+            } else if (fieldname === "infoLink") {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<a/>", {
+                        href: book[fieldname],
+                        target: "_blank",
+                        html: fieldname + ": " + book[fieldname]
+                    }));
+            } else if (fieldname === "imageLinks") {
+                let thumbnail = book[fieldname].thumbnail;
+                if (typeof thumbnail !== "undefined" && thumbnail.length > 0) {
+                    $(container)
+                        .append($("<br/>"))
+                        .append($("<img/>", {
+                            src: thumbnail,
+                            title: fieldname + ": " + thumbnail
+                        }));
+                } else {
+                    let smallThumbnail = book[fieldname].smallThumbnail;
+                    if (typeof smallThumbnail !== "undefined" && smallThumbnail.length > 0) {
+                        $(container)
+                            .append($("<br/>"))
+                            .append($("<img/>", {
+                                src: smallThumbnail,
+                                title: fieldname + ": " + smallThumbnail
+                            }));
+                    }
+                }
+            } else {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<span/>", {
+                        html: bkeys[ikey] + " " + book[bkeys[ikey]]
+                    }));
+            }
+        }
 
     };
+
     /**
      * standardisierte Mimik zur Integration mit App, Browser und node.js
      */

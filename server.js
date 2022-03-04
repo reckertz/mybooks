@@ -122,15 +122,15 @@ app.use(express.static(path.join(__dirname, 'public')));
  * getbyisbn - Buchdaten mit isbn holen
  */
 app.post('/getbyisbn', function (req, res) {
-    var timeout = 100 * 60 * 1000; // hier: gesetzter Default
+    let timeout = 100 * 60 * 1000; // hier: gesetzter Default
     if (req.query && typeof req.query.timeout !== "undefined" && req.query.timeout.length > 0) {
         timeout = req.query.timeout;
         req.setTimeout(parseInt(timeout));
     }
-    var rootdir = __dirname;
+    let rootdir = __dirname;
     mybooksutils.getbyisbn(db, rootdir, fs, async, req, null, res, function (res, ret) {
         // in ret liegen error, message und record
-        var smsg = JSON.stringify(ret);
+        let smsg = JSON.stringify(ret);
         res.writeHead(200, {
             'Content-Type': 'application/text',
             "Access-Control-Allow-Origin": "*"

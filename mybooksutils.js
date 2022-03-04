@@ -126,7 +126,7 @@
                     reqparm.insfields = dbhelper.cloneObject(insfields);
                     reqparm.updfields = dbhelper.cloneObject(updfields);
                     reqparm.table = "MYBOOKS";
-                    dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret) {
+                    dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
                         cbisbn13(null, res, ret);
                         return;
                     });
@@ -138,7 +138,8 @@
                 }
             ],
             function (error, res, ret) {
-
+                cbisbn1(res, ret);
+                return;
             });
 
     };
