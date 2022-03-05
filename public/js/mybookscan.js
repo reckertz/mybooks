@@ -1,6 +1,6 @@
 /*jshint esversion:6,laxbreak:true,evil:true,sub:true */
 /*global $,window,module,document,define,root,global,self,var,this,sysbase,uihelper */
-/*global uientry,planetaryjs, */
+/*global uientry,planetaryjs,SpeechRecognition */
 (function () {
     "use strict";
     //
@@ -11,6 +11,10 @@
     mybookscan.show = function () {
         uihelper.init("online");
 
+        let oldbox = uihelper.getCookie("box");
+        if (oldbox === null) {
+            oldbox = "";
+        }
         $("body").removeClass("overflow-hidden");
         $("body").addClass("overflow-hidden");
         if ($(".klicontainer").length <= 0) {
@@ -74,7 +78,7 @@
                 })
                 .append($("<label/>", {
                     for: "myscansearch",
-                    text: "ISBN oder Titel",
+                    text: "Suche",
                     class: "col-sm-4 col-form-label"
                 }))
                 .append($("<div/>", {
@@ -85,7 +89,7 @@
                         class: "form-control myscansearch",
                         type: "text",
                         "data-mini": "true",
-                        title: "Barcode Scannen oder eingeben"
+                        title: "Barcode Scannen oder ISBN eingeben oder Titel eingeben"
                         //value: "0735619670"
                     }))
 
@@ -111,7 +115,8 @@
                         class: "form-control myscanbox",
                         type: "text",
                         "data-mini": "true",
-                        title: "Box, Regal o.ä. eingeben"
+                        title: "Box, Regal o.ä. eingeben",
+                        value: oldbox
                         //value: "0735619670"
                     }))
                 )
@@ -162,6 +167,7 @@
                     click: function (evt) {
                         evt.preventDefault();
                         mybookscan.search();
+                        $("input.markedactive").removeClass("markedactive");
                     }
                 }))
 
@@ -180,6 +186,7 @@
                 }))
             );
         $("#myscansearch").focus();
+        mybookscan.speech();
 
     };
 
@@ -192,13 +199,13 @@
             $("#mybookscanb1").click();
             return;
         }
-        
+
     });
 
     mybookscan.search = function () {
         // API-Aufruf booksearch
         let booksearch = $("#myscansearch").val();
-        var jqxhr = $.ajax({
+        let jqxhr = $.ajax({
             method: "POST",
             crossDomain: false,
             url: "getbyisbn",
@@ -208,9 +215,11 @@
                 bookcomment: $("#myscancomment").val()
             }
         }).done(function (r1, textStatus, jqXHR) {
-            var ret = JSON.parse(r1);
+            let ret = JSON.parse(r1);
             $("body").css("cursor", "");
             //alert(JSON.parse(ret.book));
+            let bookbox = $("#myscanbox").val();
+            uihelper.setCookie("box",bookbox);
             mybookscan.showBook(ret.booksearch, ret.book, "#mybookscandata");
             if (ret.error === false) {
                 $("#myscansearch").val("");
@@ -237,7 +246,15 @@
         let bkeys = Object.keys(book);
         for (let ikey = 0; ikey < bkeys.length; ikey++) {
             let fieldname = bkeys[ikey];
-            if (fieldname === "previewLink") {
+            if (fieldname === "ISBN") {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<span/>", {
+                        html: bkeys[ikey] + " " + book[bkeys[ikey]],
+                        class: "ISBN",
+                        ISBN:  book[bkeys[ikey]]
+                    }));
+            } else if (fieldname === "previewLink") {
                 $(container)
                     .append($("<br/>"))
                     .append($("<a/>", {
@@ -282,7 +299,7 @@
                         src: thumbnail,
                         title: fieldname + ": " + thumbnail
                     }));
-            } else if (fieldname === "smallThumbnail" && book.smallThumbnail.length > 0  && hasthumb === false) {
+            } else if (fieldname === "smallThumbnail" && book.smallThumbnail.length > 0 && hasthumb === false) {
                 hasthumb = true;
                 let smallThumbnail = book.smallThumbnail;
                 $(container)
@@ -307,6 +324,138 @@
             .prepend($("<li/>", {
                 html: "<b>" + book.title + " " + (book.subtitle || "") + "</b>" + " " + authors
             }));
+
+    };
+
+    /**
+     * speech - start recognition and operate speech input
+     * dynamic recognition of focus-input fields and put input
+     * keywords: Eingabefeld <Feldname> <Texteingabe> 
+     *       und Button <Buttontext>
+     * @returns 
+     * https://codepen.io/GeorgePark/pen/gKrVJe wohl interessant
+     */
+    mybookscan.speech = function () {
+
+        //DOM load event
+        window.addEventListener("DOMContentLoaded", function () {
+
+            //Set speech recognition
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+
+            recognition.lang = "de-DE";
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            //Start speech recognition
+            recognition.start();
+
+            //Listen for when the user finishes talking
+            recognition.addEventListener('result', function (e) {
+                $("input.markedactive").removeClass("markedactive");
+                //Get transcript of user speech & confidence percentage
+                let transcript = e.results[0][0].transcript.toLowerCase(); //.replace(/\s/g, ''),
+                let confidence = (e.results[0][0].confidence * 100).toFixed(1);
+
+                //Check transcript
+                transcript = transcript.trim();
+                console.log("Erkannt (" + confidence + "):" + transcript);
+                if (transcript.startsWith("eingabefeld")) {
+                    //alert("EINGABEFELD:" + transcript);
+                    let words = transcript.split(/\s+/);
+                    // es werden alle label-Texte analysiert
+                    $('label').each(function (index, label) {
+                        console.log($(label).text());
+                        let ltext = $(label).text();
+                        let wtext = ltext.toLowerCase();
+                        let lwords = wtext.split(/\s+/);
+                        // words gegen lwords
+                        let firstinput = -1;
+                        if (words[1] === lwords[0]) {
+                            firstinput = 2;
+                            // in jedem Fall ein Treffer, Konvention solle ein Wort sei, also SKIP-Check
+                            let llen = lwords.length;
+                            for (let i = 2; i < words.length; i++) {
+                                if (i >= llen) {
+                                    break;
+                                }
+                                if (words[i] === lwords[i - 1]) {
+                                    // skip word, das noch zum Label gehört
+                                    firstinput = i;
+                                } else {
+                                    break;
+                                }
+                            }
+                            if (firstinput > -1) {
+                                let newtext = words.slice(firstinput).join(" ");
+                                // find input field
+                                let inputid = $(label).attr("for");
+                                $("#" + inputid).removeClass("markedactive");
+                                $("#" + inputid).addClass("markedactive");
+                                if (ltext.startsWith("Suche")) {
+                                    // dediziert prüfen ISBN mit spezieller Aufbereitung
+                                    let isbncandidate = newtext;
+                                    isbncandidate = isbncandidate.replace(/-/g, "");
+                                    isbncandidate = isbncandidate.replace(/ /g, "");
+                                    if (genhelper.isISBN(isbncandidate)) {
+                                        console.log("ISBN-Suche:" + isbncandidate);
+                                        $("#" + inputid).val(isbncandidate);
+                                        $("#mybookscanb1").click();
+                                        return false;
+                                    }
+                                }
+                                console.log("Eingabefeld " + ltext + ":" + newtext);
+                                $("#" + inputid).val(newtext);
+                                return false;
+                            }
+                        }
+
+                        /*
+                        var forAttr = $(this).attr('for');
+                        $next = $(this).next();
+                        if($next.attr('id') == forAttr) {
+                            $(this).attr('for', forAttr + index);
+                            $next.attr('id', forAttr + index);
+                        }
+                        */
+                    });
+
+
+                } else if (transcript.startsWith("button")) {
+                    alert("BUTTON:" + transcript);
+                    let words = transcript.split(/\s+/);
+                    let found = false;
+                    // es werden alle Button-Texte analysiert
+                    // die Texte müssen immer komplett gesprochen werden
+                    $('button').each(function (index, button) {
+                        console.log($(button).text());
+                        let btext = $(button).text();
+                        let btextlow = btext.toLowerCase();
+                        if (transcript === btextlow) {
+                            $(button).click();
+                            found = true;
+                            return false;
+                        }
+                    });
+
+                    // es kann auch input type=button,submit, geben, wäre zweiter Ansatz
+
+                    // es gibt auch ICONs, die haben eigentlich keine Beschrifung
+
+
+                } else {
+                    //alert("UNCLEAR:" + transcript);
+                    uihelper.beep();
+                }
+
+            });
+
+            //Restart speech recognition after user has finished talking
+            recognition.addEventListener('end', recognition.start);
+
+        });
 
     };
 

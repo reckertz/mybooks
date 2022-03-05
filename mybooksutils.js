@@ -26,7 +26,7 @@
      * callback mit function (res, ret)
      */
     mybooksutils.getbyisbn = function (db, rootdir, fs, async, req, reqparm, res, cbisbn1) {
-        let booksearch = "0735619670";
+        let booksearch = ""; // "0735619670";
         if (req.query && typeof req.query.booksearch === "string" && req.query.booksearch.length > 0) {
             booksearch = req.query.booksearch;
         } else if (req.body && typeof req.body.booksearch === "string" && req.body.booksearch.length > 0) {

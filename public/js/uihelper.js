@@ -16,8 +16,8 @@
      * Initialisiert den Breadcrumb-Stack und das Hauptmenue inkl. Event-Routinen
      * @param {*} mode - Modus online oder offline, online ist Default
      */
-     uihelper.init = function (mode) {
-       
+    uihelper.init = function (mode) {
+
         /**
          * Dropdown
          */
@@ -263,7 +263,7 @@
      * Berechnet die Scrollbar-Width eines DOM-Elementes
      * @param {*} el
      */
-     uihelper.getScrollbarWidth = function (el) {
+    uihelper.getScrollbarWidth = function (el) {
         // https://stackoverflow.com/questions/986937/how-can-i-get-the-browsers-scrollbar-sizes;
         let parent, child, width;
         if (width === undefined) {
@@ -282,7 +282,7 @@
      * @param {*} parameters - Parameter, die bei show übergeben werden als Array
      * @param {*} cb6095 - Callback mit return ret
      */
-     uihelper.navigateTo = function (targetpage, parameters, cb6095) {
+    uihelper.navigateTo = function (targetpage, parameters, cb6095) {
         /**
          * Aufruf einer anderen Seite mit show-Funktion,
          * depricated ist klistack als Callstack für Back-Unterstützung
@@ -403,53 +403,53 @@
      * @param {*} message
      * @param {*} severity
      */
-     let msgcount = 0;
-     uihelper.putMessage = function (message, severity) {
-         console.log("MSG:" + message);
-         msgcount++;
-         if (typeof severity === "undefined") {
-             severity = 1;
-         }
-         messages.unshift({
-             message: message,
-             severity: severity
-         });
-         if (messages.length > 50) {
-             messages.pop();
-         }
-         // einen roten Punkt setzen für neue Nachrichten
-         // $(".newmessages").show();
-         $(".newmessages").css("background-color", "pink");
-         $(".newmessages").html(msgcount);
-     };
- 
-     uihelper.showMessages = function () {
-         let html = "";
-         //html += '<div class="modal-dialog modal-dialog-scrollable">';
-         html += "<ul>";
-         for (let imsg = 0; imsg < messages.length; imsg++) {
-             html += "<li";
-             if (messages[imsg].severity > 2) {
-                 html += " style='background-color:pink;font-weight: bold;'";
-             } else if (messages[imsg].severity > 1) {
-                 html += " style='font-weight: bold;'";
-             }
-             html += ">";
-             html += messages[imsg].message;
-             html += "</li>";
-         }
-         html += "</ul>";
-         //html += "</div>";
-         $.showModal({
-             modalDialogClass: "modal-lg modal-dialog modal-dialog-scrollable",
-             backdrop: true,
-             title: "Meldungen",
-             body: html
-         });
-         $(".newmessages").css("background-color", "grey");
-         msgcount = 0;
-     };
- 
+    let msgcount = 0;
+    uihelper.putMessage = function (message, severity) {
+        console.log("MSG:" + message);
+        msgcount++;
+        if (typeof severity === "undefined") {
+            severity = 1;
+        }
+        messages.unshift({
+            message: message,
+            severity: severity
+        });
+        if (messages.length > 50) {
+            messages.pop();
+        }
+        // einen roten Punkt setzen für neue Nachrichten
+        // $(".newmessages").show();
+        $(".newmessages").css("background-color", "pink");
+        $(".newmessages").html(msgcount);
+    };
+
+    uihelper.showMessages = function () {
+        let html = "";
+        //html += '<div class="modal-dialog modal-dialog-scrollable">';
+        html += "<ul>";
+        for (let imsg = 0; imsg < messages.length; imsg++) {
+            html += "<li";
+            if (messages[imsg].severity > 2) {
+                html += " style='background-color:pink;font-weight: bold;'";
+            } else if (messages[imsg].severity > 1) {
+                html += " style='font-weight: bold;'";
+            }
+            html += ">";
+            html += messages[imsg].message;
+            html += "</li>";
+        }
+        html += "</ul>";
+        //html += "</div>";
+        $.showModal({
+            modalDialogClass: "modal-lg modal-dialog modal-dialog-scrollable",
+            backdrop: true,
+            title: "Meldungen",
+            body: html
+        });
+        $(".newmessages").css("background-color", "grey");
+        msgcount = 0;
+    };
+
 
     /**
      * transformJSON2TableTRX
@@ -461,7 +461,7 @@
      * @param {*} rowclass
      * @returns
      */
-     uihelper.transformJSON2TableTRX = function (obj, count, formatattributes, format, rowid, rowclass, linkfield) {
+    uihelper.transformJSON2TableTRX = function (obj, count, formatattributes, format, rowid, rowclass, linkfield) {
         if ($.isEmptyObject(format)) {
             // Berechnung Default-Format
             format = {};
@@ -634,10 +634,136 @@
         return res;
     };
 
+
+
+    /**
+     * getCookie - holt Cookie oder Pseudocookie aus localStorage
+     * und gibt object zurück (!)
+     * @param {*} cookiename
+     * returns cookie-Inhalt als Objekt (!) oder null
+     */
+    uihelper.getCookie = function (cookiename) {
+        let emptycookie = null;
+        try {
+            let cookiestring = Cookies.get(cookiename);
+            // spezielle Abfrage, kommt wegen API
+            if (typeof cookiestring === "undefined" || cookiestring === "undefined" || cookiestring === null || cookiestring.length === 0) {
+                return emptycookie;
+            } else {
+                // Default-Setzungen für klimaquizparms
+                let cookieobj = cookiestring;
+                if (typeof cookiestring === "string") {
+                    if (cookiestring.startsWith("{") || cookiestring.startsWith("[")) {
+                        cookieobj = JSON.parse(cookiestring);
+                    }
+                }
+                return cookieobj;
+            }
+        } catch (err) {
+            return emptycookie;
+        }
+    };
+
+    /**
+     * setCookie - setzt Cookie oder Pseudocookie in localStorage
+     * Cookie als String, Pseudocookie als object
+     * @param {*} cookiename
+     * @param {*} cookiestring
+     * @param {*} cookieparms
+     * returns true oder false, wenn es nicht geklappt hat
+     */
+    uihelper.setCookie = function (cookiename, cookiestring, cookieparms) {
+        let cookiedata;
+        if (typeof cookiestring === "string") {
+            cookiedata = cookiestring;
+        } else if (typeof cookiestring === "object") {
+            cookiedata = kla6900.cloneObject(cookiestring);
+            cookiestring = JSON.stringify(cookiedata);
+        } else {
+            return false;
+        }
+        if (typeof cookieparms === "undefined") {
+            cookieparms = {
+                expires: 1000, // Tage
+                SameSite: "Strict"
+            };
+        }
+        Cookies.set(cookiename, cookiestring, cookieparms);
+        return true;
+    };
+
+
+
+    /**
+     * isStorageAvailable - localStorage (dft) und sessionStorage
+     * @param {*} type
+     * @returns true oder error mit code und name oder false
+     */
+    uihelper.isStorageAvailable = function (type) {
+        let storage;
+        if (typeof type === "undefined" || type === null || type.length === 0) {
+            type = "localStorage";
+        }
+        try {
+            storage = window[type];
+            var x = '__storage_test__';
+            storage.setItem(x, x);
+            storage.removeItem(x);
+            return true;
+        } catch (e) {
+            return e instanceof DOMException && (
+                    // everything except Firefox
+                    e.code === 22 ||
+                    // Firefox
+                    e.code === 1014 ||
+                    // test name field too, because code might not be present
+                    // everything except Firefox
+                    e.name === 'QuotaExceededError' ||
+                    // Firefox
+                    e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+                // acknowledge QuotaExceededError only if there's something already stored
+                (storage && storage.length !== 0);
+        }
+    };
+
+
+
+
+
+    var actx = false;
+    /**
+     * beep
+     * https://stackoverflow.com/questions/29567580/play-a-beep-sound-on-button-click
+     * @param {*} vol - Default 30
+     * @param {*} freq - Default 1000
+     * @param {*} duration - Default 50
+     */
+    uihelper.beep = function (vol, freq, duration) {
+        try {
+            if (!actx) actx = new AudioContext();
+            vol = vol || 30;
+            freq = freq || 1000;
+            duration = duration || 50;
+
+            let v = actx.createOscillator();
+            let u = actx.createGain();
+            v.connect(u);
+            v.frequency.value = freq;
+            u.connect(actx.destination);
+            u.gain.value = vol * 0.01;
+            v.start(actx.currentTime);
+            v.stop(actx.currentTime + duration * 0.001);
+        } catch (err) {
+            // ignore
+            console.log(err.stack);
+        }
+    };
+
+
     /**
      * standardisierte Mimik zur Integration mit App, Browser und node.js
      */
-     if (typeof module === 'object' && module.exports) {
+    if (typeof module === 'object' && module.exports) {
         // Node.js
         module.exports = uihelper;
     } else if (typeof define === 'function' && define.amd) {

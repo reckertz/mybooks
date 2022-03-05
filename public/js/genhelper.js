@@ -25,7 +25,7 @@
         // erst mal: alles zahlen
         let reg = /^\d+/;
         if (!reg.test(isbninput)) {
-            return;
+            return false;
         }
         if (isbninput.trim().length === 10) {
             // dedizierte Prüfung
@@ -38,13 +38,13 @@
             let pz = sum % 11;
             if (pz !== 10) {
                 if (pz !== parseInt(isbninput[9])) {
-                    return; // falsche ISBN-10
+                    return false; // falsche ISBN-10
                 } else {
-                    $("#mybookscanb1").click();
+                    return true;
                 }
             } else {
                 if (isbninput.substr(9, 1) === "X" || isbninput.substr(9, 1) === "0") {
-                    $("#mybookscanb1").click();
+                    return true;
                 }
             }
         }
@@ -68,9 +68,9 @@
             pz = pz % 10;
             console.log(isbninput + "=>" + sum + "=>" + pz);
             if (pz !== parseInt(isbninput.substr(12, 1))) {
-                return; // falsche ISBN-13
+                return false; // falsche ISBN-13
             } else {
-                $("#mybookscanb1").click();
+                return true;
             }
         }
 
