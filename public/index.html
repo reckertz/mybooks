@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rolf's Book-App</title>
+    <link rel="stylesheet" type="text/css" href="/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" type="text/css"
+        href="https://cdn.datatables.net/select/1.3.4/css/select.bootstrap5.min.css" />
+
+
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/jquery.min.js"></script>
+
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/select/1.3.4/js/dataTables.select.min.js"></script>
+    
+    <script src="lib/js.cookie.min.js"></script>
+
+    <script src="js/mybookscan.js"></script>
+    <!--script src="js/mybooksearch.js"></script-->
+    <script src="js/uihelper.js"></script>
+    <script src="js/sqlutils.js"></script>
+    <script src="js/genhelper.js"></script>
+
+    <style type="text/css">
+        .markedactive {
+            background: mistyrose;
+        }
+        .markedinactive {
+            background: white;
+        }
+    </style>
+</head>
+
+<body style="width:100%">
+    <!-- Start Navigation fixed-top -->
+    <nav class="navbar navbar-brand header  sticky-top navbar-light bg-light" style=" background-color: #e3f2fd;">
+    </nav>
+    <script>
+        $(document).ready(function () {
+            let queryString = window.location.search;
+            let urlParms = new URLSearchParams(queryString);
+            let target = urlParms.get('target');
+            if (typeof target === "string" && target.length > 0 && target === "sqlutils") {
+                uihelper.navigateTo("sqlutils.show", {
+                    cb6000: function (err) {
+
+                    }
+                });
+            } else {
+                // erst mal dedizierter Start mit Scannen
+                mybookscan.show();
+            }
+        });
+    </script>
+</body>
+
+</html>
