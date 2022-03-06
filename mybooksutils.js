@@ -3,6 +3,8 @@
 /*global $,window,module,document,define,root,global,self,var,this,sysbase,uihelper */
 /*global uientry,planetaryjs, */
 
+const genhelper = require('./public/js/genhelper.js');
+
 (function () {
     "use strict";
     //
@@ -93,8 +95,8 @@
                 },
                 function (res, ret, cbisbn12) {
                     // Zugriff zum API
-                    if (typeof ret.isNew !== "undefined" && ret.isNew === false) {
-                        // Buch bereits bekannt
+                    if (typeof ret.isNew !== "undefined" && ret.isNew === false || genhelper.isISBN(ret.booksearch) === false) {
+                        // ISBN bereits bekannt oder Titeleingabe
                         cbisbn12(null, res, ret);
                         return;
                     }
@@ -134,10 +136,12 @@
                     booksbytitle.search(ret.booksearch, function(error, results) {
                         if ( ! error ) {
                             console.log(JSON.stringify(results));
+                            ret.booklist = results;
                         } else {
                             console.log(error);
+                            ret.booklist = [];
                         }
-                        cbisbn12a(null, res, ret);
+                        cbisbn12a("finish", res, ret);
                         return; 
                     });
                 },

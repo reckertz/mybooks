@@ -219,8 +219,15 @@
             $("body").css("cursor", "");
             //alert(JSON.parse(ret.book));
             let bookbox = $("#myscanbox").val();
-            uihelper.setCookie("box",bookbox);
-            mybookscan.showBook(ret.booksearch, ret.book, "#mybookscandata");
+            uihelper.setCookie("box", bookbox);
+            if (typeof ret.book === "object" && Object.keys(ret.book).length > 0) {
+                mybookscan.showBook(ret.booksearch, ret.book, "#mybookscandata");
+            } else if (typeof ret.booklist === "object" && Array.isArray(ret.booklist) && ret.booklist.length > 0) {
+                mybookscan.showBookListe(ret.booksearch, ret.booklist, "#mybookscandata");
+            } else {
+                // hier wurde wirklich nichts gefunden
+            }
+
             if (ret.error === false) {
                 $("#myscansearch").val("");
             }
@@ -235,14 +242,17 @@
         });
     };
 
+    /**
+     * showBook
+     * @param {*} booksearch 
+     * @param {*} book 
+     * @param {*} container 
+     */
     mybookscan.showBook = function (booksearch, book, container) {
         let hasthumb = false;
         $(container).children().remove();
         $(container)
-            .append($("<br/>"))
-            .append($("<span/>", {
-                html: "ISBN" + " " + booksearch
-            }));
+            .append($("<br/>"));
         let bkeys = Object.keys(book);
         for (let ikey = 0; ikey < bkeys.length; ikey++) {
             let fieldname = bkeys[ikey];
@@ -252,7 +262,7 @@
                     .append($("<span/>", {
                         html: bkeys[ikey] + " " + book[bkeys[ikey]],
                         class: "ISBN",
-                        ISBN:  book[bkeys[ikey]]
+                        ISBN: book[bkeys[ikey]]
                     }));
             } else if (fieldname === "previewLink") {
                 $(container)
@@ -324,6 +334,33 @@
             .prepend($("<li/>", {
                 html: "<b>" + book.title + " " + (book.subtitle || "") + "</b>" + " " + authors
             }));
+    };
+
+
+    /**
+     * showBookListe
+     * @param {*} booksearch - Titelsuche 
+     * @param {*} bookliste - Array von Büchern als Trefferliste
+     * @param {*} container 
+     */
+    mybookscan.showBookListe = function (booksearch, bookliste, container) {
+        $(container).children().remove();
+        $(container)
+            .append($("<br/>"));
+        $(container)
+            .append($("<ul/>", {
+                id: "mybookliste"
+            }));
+        bookliste.forEach(function (book, ibook) {
+            let html = ibook + ". " + book.title + " " + JSON.stringify(book);
+            $("#mybookliste")
+                .append($("<li/>", {
+                    html: html
+                }));
+        });
+
+
+
 
     };
 
@@ -424,8 +461,9 @@
 
 
                 } else if (transcript.startsWith("button")) {
-                    alert("BUTTON:" + transcript);
+                   // alert("BUTTON:" + transcript);
                     let words = transcript.split(/\s+/);
+                    let transtext = words.slice(1).join(" ");
                     let found = false;
                     // es werden alle Button-Texte analysiert
                     // die Texte müssen immer komplett gesprochen werden
@@ -433,7 +471,7 @@
                         console.log($(button).text());
                         let btext = $(button).text();
                         let btextlow = btext.toLowerCase();
-                        if (transcript === btextlow) {
+                        if (transtext === btextlow) {
                             $(button).click();
                             found = true;
                             return false;
