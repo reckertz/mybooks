@@ -19,35 +19,6 @@
     uihelper.init = function (mode) {
 
         /**
-         * Dropdown
-         */
-        $("nav")
-            .append($("<button/>", {
-                    type: "button",
-                    class: "btn btn-primary dropdown-toggle kliadminmenue",
-                    css: {
-                        //display: "none"
-                        float: "left"
-                    },
-                    "data-toggle": "dropdown",
-                    href: "#"
-                })
-                .append($("<span/>", {
-                    class: "text",
-                    html: 'Stack<span class="caret"></span>'
-                }))
-                .append($("<span/>", {
-                        class: "icon"
-                    })
-                    .append($("<span/>", {
-                        class: "caret"
-                    }))
-                )
-                .append($("<ul/>", {
-                    class: "dropdown-menu klimamenu"
-                }))
-            );
-        /**
          * Icons für die Navigation und die Bedienung
          */
 
@@ -74,7 +45,6 @@
                         */
                     }
                 }))
-
 
                 .append($("<button/>", {
                     class: "btn btn-danger newmessages",
@@ -115,7 +85,7 @@
                         "margin-left": "10px"
                     }
                 }))
-                
+
 
             );
         /**
@@ -180,87 +150,12 @@
                     }
                 }))
             );
-        // $(".newmessages").hide();
-        // Menuepunkte aufbauen!
-        $(".klimamenu")
-            .append($("<li/>", {
-                class: "dropdown-item",
-                html: "zurück",
-                click: function (evt) {
-                    evt.preventDefault();
-                    uihelper.navigateBack();
-                }
+
+        $("nav")
+            .append($("<div/>", {
+                class: "navmessage",
+                id: "navmessage"
             }));
-
-        $(".klimamenu")
-            .append($("<li/>", {
-                class: "dropdown-item",
-                html: "WMO/IPCC-Perioden",
-                /* config.wmo mit fromyear, toyear und step */
-                click: function (evt) {
-                    evt.preventDefault();
-                    config.buckettyp = "IPCC";
-                    let pageid = $(".klicontainer").attr("pageid");
-                    let modname = "kla6000";
-                    if (pageid !== null && pageid.length > 0) {
-                        modname = pageid;
-                    }
-                    uihelper.navigateTo(modname + ".showHeatmap", {
-                        stationid: config.stationid,
-                        variablename: config.variable,
-                        cb6000: function (err) {
-
-                        }
-                    });
-                }
-            }));
-        $(".klimamenu")
-            .append($("<li/>", {
-                class: "dropdown-item",
-                html: "10-er Buckets",
-                /* config.wmo mit fromyear, toyear und step */
-                click: function (evt) {
-                    evt.preventDefault();
-                    config.buckettyp = "STEP10";
-                    let pageid = $(".klicontainer").attr("pageid");
-                    let modname = "kla6000";
-                    if (pageid !== null && pageid.length > 0) {
-                        modname = pageid;
-                    }
-                    uihelper.navigateTo(modname + ".showHeatmap", {
-                        stationid: config.stationid,
-                        variablename: config.variable,
-                        cb6000: function (err) {
-
-                        }
-                    });
-                }
-            }));
-
-
-        $(".klimamenu")
-            .append($("<li/>", {
-                class: "dropdown-item",
-                html: "Warm/Cold-Perioden-I",
-                /* config.nelson Array mit {fromyear, toyear} */
-                click: function (evt) {
-                    evt.preventDefault();
-                    config.buckettyp = "WARMCOLD1";
-                    let pageid = $(".klicontainer").attr("pageid");
-                    let modname = "kla6000";
-                    if (pageid !== null && pageid.length > 0) {
-                        modname = pageid;
-                    }
-                    uihelper.navigateTo(modname + ".showHeatmap", {
-                        stationid: config.stationid,
-                        variablename: config.variable,
-                        cb6000: function (err) {
-
-                        }
-                    });
-                }
-            }));
-
     };
 
 
@@ -427,6 +322,23 @@
         // $(".newmessages").show();
         $(".newmessages").css("background-color", "pink");
         $(".newmessages").html(msgcount);
+        if (message.length > 50) {
+            $(".navmessage").html(message.substr(0, 50) + "...");
+        } else {
+            $(".navmessage").html(message);
+        }
+        $(".navmessage").attr("title", message);
+        if (severity > 1) {
+            $(".navmessage").css("color", "red");
+        } else {
+            $(".navmessage").css("color", "blue");
+        }
+    };
+
+
+    uihelper.clearMessage = function () {
+        $(".navmessage").attr("title", "");
+        $(".navmessage").css("color", "white");
     };
 
     uihelper.showMessages = function () {

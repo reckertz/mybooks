@@ -142,6 +142,54 @@ app.post('/getbyisbn', function (req, res) {
 });
 
 
+
+/**
+ * putinfobyisbn - Kommentar und Box zu isbn speichern in MYBOOKSINFOS
+ */
+ app.post('/putinfobyisbn', function (req, res) {
+    let timeout = 100 * 60 * 1000; // hier: gesetzter Default
+    if (req.body && typeof req.body.timeout !== "undefined" && req.body.timeout.length > 0) {
+        timeout = req.body.timeout;
+        req.setTimeout(parseInt(timeout));
+    }
+    let rootdir = __dirname;
+    mybooksutils.putinfobyisbn(db, rootdir, fs, async, req, null, res, function (res, ret) {
+        // in ret liegen error, message und record
+        let smsg = JSON.stringify(ret);
+        res.writeHead(200, {
+            'Content-Type': 'application/text',
+            "Access-Control-Allow-Origin": "*"
+        });
+        res.end(smsg);
+        return;
+    });
+});
+
+
+/**
+ * putdatabyisbn - Kommentar und Box zu isbn speichern in MYBOOKSINFOS
+ */
+ app.post('/putdatabyisbn', function (req, res) {
+    let timeout = 100 * 60 * 1000; // hier: gesetzter Default
+    if (req.body && typeof req.body.timeout !== "undefined" && req.body.timeout.length > 0) {
+        timeout = req.body.timeout;
+        req.setTimeout(parseInt(timeout));
+    }
+    let rootdir = __dirname;
+    mybooksutils.putdatabyisbn(db, rootdir, fs, async, req, null, res, function (res, ret) {
+        // in ret liegen error, message und record
+        let smsg = JSON.stringify(ret);
+        res.writeHead(200, {
+            'Content-Type': 'application/text',
+            "Access-Control-Allow-Origin": "*"
+        });
+        res.end(smsg);
+        return;
+    });
+});
+
+
+
 /**
  * getallrecords - eingeschränkt generischer SQL-SELECT
  */

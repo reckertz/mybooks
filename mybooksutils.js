@@ -205,12 +205,12 @@ const genhelper = require('./public/js/genhelper.js');
                             }
                             // Extrakt übernehmen
                             ret.booklist = [];
-                            body.docs.forEach(function(book, ibook) {
+                            body.docs.forEach(function (book, ibook) {
                                 ret.booklist.push({
                                     title: book.title,
                                     author_name: book.author_name.join("; "),
                                     ISBN: book.isbn.join(", "),
-                                    publish_year: book.publish_year.join(", ")  
+                                    publish_year: book.publish_year.join(", ")
                                 });
                             });
                             cbisbn12a(null, res, ret);
@@ -336,6 +336,152 @@ const genhelper = require('./public/js/genhelper.js');
             });
 
     };
+
+
+    /**
+     * putinfobyisbn - isbn oder Titel als Vorgabe
+     * erst prüfen, ob schon in der Datenbank,
+     * wenn nicht, dann über API die Daten holen bzw. suchen
+     * @param {*} rootdir 
+     * @param {*} fs 
+     * @param {*} async 
+     * @param {*} req 
+     * @param {*} reqparm
+     * @param {*} res 
+     * @param {*} cbisbn1 
+     * callback mit function (res, ret)
+     */
+    mybooksutils.putinfobyisbn = function (db, rootdir, fs, async, req, reqparm, res, cbisbn2) {
+        let isbn = ""; // "0735619670";
+        if (req.body && typeof req.body.isbn === "string" && req.body.isbn.length > 0) {
+            isbn = req.body.isbn;
+        }
+
+        let bookbox = "Box 1";
+        if (req.body && typeof req.body.bookbox === "string" && req.body.bookbox.length > 0) {
+            bookbox = req.body.bookbox;
+        }
+
+        let bookcomment = "";
+        if (req.body && typeof req.body.bookcomment === "string" && req.body.bookcomment.length > 0) {
+            bookcomment = req.body.bookcomment;
+        }
+
+        let booktitle = "";
+        if (req.body && typeof req.body.booktitle === "string" && req.body.booktitle.length > 0) {
+            booktitle = req.body.booktitle;
+        }
+
+        let booksubtitle = "";
+        if (req.body && typeof req.body.booksubtitle === "string" && req.body.booksubtitle.length > 0) {
+            booksubtitle = req.body.booksubtitle;
+        }
+
+        async.waterfall(
+            [
+                function (cbisbn20) {
+                    let ret = {};
+                    ret.isbn = isbn;
+                    ret.bookbox = bookbox;
+                    ret.bookcomment = bookcomment;
+                    ret.booktitle = booktitle;
+                    ret.booksubtitle = booksubtitle;
+                    cbisbn20(null, res, ret);
+                    return;
+                },
+                function (res, ret, cbisbn24) {
+                    // Aufbereiten der Ausgabe MYBOOKSINFOS mit box und comment zur ISBN mit title
+                    console.log(ret.booksearch + " upsert MYBOOKSINFOS");
+                    let selfields = {};
+                    let insfields = {};
+                    let updfields = {};
+                    selfields.ISBN = ret.isbn;
+                    insfields.ISBN = ret.isbn;
+                    updfields.title = ret.booktitle || "";
+                    updfields.subtitle = ret.booksubtitle || "";
+                    updfields.bookbox = ret.bookbox;
+                    updfields.bookcomment = ret.bookcomment;
+                    let reqparm = {};
+                    reqparm.selfields = dbhelper.cloneObject(selfields);
+                    reqparm.insfields = dbhelper.cloneObject(insfields);
+                    reqparm.updfields = dbhelper.cloneObject(updfields);
+                    reqparm.table = "MYBOOKSINFOS";
+                    dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
+                        ret.error = ret1.error;
+                        ret.message = ret1.message;
+                        cbisbn24(null, res, ret);
+                        return;
+                    });
+                }
+            ],
+            function (error, res, ret) {
+                console.log(ret.isbn + " Kommentar erfasst");
+                cbisbn2(res, ret);
+                return;
+            });
+    };
+
+
+    /**
+     * putdatabyisbn - isbn oder Titel als Vorgabe
+     * erst prüfen, ob schon in der Datenbank,
+     * wenn nicht, dann über API die Daten holen bzw. suchen
+     * @param {*} rootdir 
+     * @param {*} fs 
+     * @param {*} async 
+     * @param {*} req 
+     * @param {*} reqparm
+     * @param {*} res 
+     * @param {*} cbisbn1 
+     * callback mit function (res, ret)
+     */
+    mybooksutils.putdatabyisbn = function (db, rootdir, fs, async, req, reqparm, res, cbisbn3) {
+        let selfields = {};
+        if (req.body && typeof req.body.selfields === "object") {
+            selfields = req.body.selfields;
+        }
+
+        let insfields = {};
+        if (req.body && typeof req.body.insfields === "object") {
+            insfields = req.body.insfields;
+        }
+
+        let updfields = {};
+        if (req.body && typeof req.body.updfields === "object") {
+            updfields = req.body.updfields;
+        }
+        let table = "MYBOOKS";
+
+        async.waterfall(
+            [
+                function (cbisbn30) {
+                    let ret = {};
+                    cbisbn30(null, res, ret);
+                    return;
+                },
+                function (res, ret, cbisbn34) {
+                    // Aufbereiten der Ausgabe MYBOOKSINFOS mit box und comment zur ISBN mit title
+                    console.log(selfields.ISBN + " upsert MYBOOKS");
+                    let reqparm = {};
+                    reqparm.selfields = dbhelper.cloneObject(selfields);
+                    reqparm.insfields = dbhelper.cloneObject(insfields);
+                    reqparm.updfields = dbhelper.cloneObject(updfields);
+                    reqparm.table = "MYBOOKS";
+                    dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
+                        ret.error = ret1.error;
+                        ret.message = ret1.message;
+                        cbisbn34(null, res, ret);
+                        return;
+                    });
+                }
+            ],
+            function (error, res, ret) {
+                console.log(selfields.ISBN + " Daten geändert");
+                cbisbn3(res, ret);
+                return;
+            });
+    };
+
 
     /**
      * standardisierte Mimik zur Integration mit App, Browser und node.js

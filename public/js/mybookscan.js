@@ -8,6 +8,8 @@
 
     let root = (typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global) || this;
 
+    let activeBook = {};
+
     mybookscan.show = function () {
         uihelper.init("online");
 
@@ -96,6 +98,31 @@
                 )
             )
 
+
+            .append($("<div/>", {
+                    class: "form-group row",
+                    css: {
+                        width: "100%",
+                        "margin": "10px"
+                    }
+                })
+                .append($("<button/>", {
+                    class: "button-primary",
+                    id: "mybookscanb1",
+                    css: {
+                        width: "40%",
+                        "margin-left": "40%"
+                    },
+                    html: "Suchen",
+                    click: function (evt) {
+                        evt.preventDefault();
+                        uihelper.clearMessage();
+                        mybookscan.search();
+                        $("input.markedactive").removeClass("markedactive");
+                    }
+                }))
+            )
+
             .append($("<div/>", {
                     class: "form-group row",
                     css: {
@@ -131,46 +158,54 @@
                 })
                 .append($("<label/>", {
                     for: "myscancomment",
-                    text: "Comment",
+                    text: "Kommentar",
                     class: "col-sm-4 col-form-label"
                 }))
                 .append($("<div/>", {
                         class: "col-sm-8"
                     })
-                    .append($("<input/>", {
+                    .append($("<textarea/>", {
                         id: "myscancomment",
                         class: "form-control myscancomment",
-                        type: "text",
                         "data-mini": "true",
-                        title: "Kommentar"
+                        title: "Kommentar",
+                        rows: 5,
+                        cols: 50
                         //value: "0735619670"
                     }))
                 )
             )
 
 
-
             .append($("<div/>", {
                     class: "form-group row",
                     css: {
                         width: "100%",
-                        "margin-top": "20px"
+                        "margin": "10px"
                     }
                 })
                 .append($("<button/>", {
                     class: "button-primary",
-                    id: "mybookscanb1",
+                    id: "mybookscanb2",
                     css: {
-                        width: "40%"
+                        width: "40%",
+                        "margin-left": "40%"
                     },
-                    html: "Suchen",
+                    html: "Speichern",
                     click: function (evt) {
                         evt.preventDefault();
-                        mybookscan.search();
-                        $("input.markedactive").removeClass("markedactive");
+                        uihelper.clearMessage();
+                        let comment = $("#myscancomment").val();
+                        let box = $("#myscanbox").val();
+                        let isbn = $("span.ISBN").attr("isbn");
+                        if (typeof isbn === "string" && genhelper.isISBN(isbn)) {
+                            mybookscan.storeData(isbn);
+                            $("input.markedactive").removeClass("markedactive");
+                        } else {
+                            uihelper.putMessage("erst ein Buch anwählen, dann kann gespeichert werden", 3);
+                        }
                     }
                 }))
-
             )
 
             .append($("<div/>", {
@@ -202,6 +237,9 @@
 
     });
 
+    /**
+     * search
+     */
     mybookscan.search = function () {
         // API-Aufruf booksearch
         let booksearch = $("#myscansearch").val();
@@ -210,9 +248,7 @@
             crossDomain: false,
             url: "getbyisbn",
             data: {
-                booksearch: booksearch,
-                bookbox: $("#myscanbox").val(),
-                bookcomment: $("#myscancomment").val()
+                booksearch: booksearch
             }
         }).done(function (r1, textStatus, jqXHR) {
             let ret = JSON.parse(r1);
@@ -220,7 +256,9 @@
             //alert(JSON.parse(ret.book));
             let bookbox = $("#myscanbox").val();
             uihelper.setCookie("box", bookbox);
+            activeBook = {};
             if (typeof ret.book === "object" && Object.keys(ret.book).length > 0) {
+                activeBook = ret.book;
                 mybookscan.showBook(ret.booksearch, ret.book, "#mybookscandata");
             } else if (typeof ret.booklist === "object" && Array.isArray(ret.booklist) && ret.booklist.length > 0) {
                 mybookscan.showBookListe(ret.booksearch, ret.booklist, "#mybookscandata");
@@ -248,9 +286,73 @@
      * @param {*} book 
      * @param {*} container 
      */
-    mybookscan.showBook = function (booksearch, book, container) {
+    mybookscan.showBook = function (booksearch, book, datacontainer) {
         let hasthumb = false;
-        $(container).children().remove();
+        $(datacontainer).children().remove();
+
+        $(datacontainer)
+            .append($("<div/>", {
+                    class: "form-group row",
+                    css: {
+                        width: "100%",
+                        "margin": "10px"
+                    }
+                })
+                .append($("<button/>", {
+                    class: "button-primary",
+                    id: "mybookscanb3",
+                    css: {
+                        "margin-left": "10%",
+                        width: "40%"
+                    },
+                    html: "Buchdaten editieren",
+                    click: function (evt) {
+                        evt.preventDefault();
+                        uihelper.clearMessage();
+                        $("#mybookscanb4").show();
+                        let comment = $("#myscancomment").val();
+                        let box = $("#myscanbox").val();
+                        let isbn = $("span.ISBN").attr("isbn");
+                        if (typeof isbn === "string" && genhelper.isISBN(isbn)) {
+                            mybookscan.prepBook();
+                            $("input.markedactive").removeClass("markedactive");
+                            $("#mybookscanb3").hide();
+                        } else {
+                            uihelper.putMessage("erst ein Buch anwählen, dann kann gespeichert werden", 3);
+                        }
+                    }
+                }))
+                .append($("<button/>", {
+                    class: "button-primary",
+                    id: "mybookscanb4",
+                    css: {
+                        "margin-left": "10%",
+                        width: "40%",
+                        display: "none"
+                    },
+                    html: "Buchdaten speichern",
+                    click: function (evt) {
+                        evt.preventDefault();
+                        uihelper.clearMessage();
+                        let comment = $("#myscancomment").val();
+                        let box = $("#myscanbox").val();
+                        let isbn = $("span.ISBN").attr("isbn");
+                        if (typeof isbn === "string" && genhelper.isISBN(isbn)) {
+                            mybookscan.storeBookData(isbn);
+                            $("input.markedactive").removeClass("markedactive");
+                        } else {
+                            uihelper.putMessage("erst ein Buch anwählen, dann kann gespeichert werden", 3);
+                        }
+                    }
+                }))
+
+            );
+        let formcontainerid = $(datacontainer).attr("id") + "form";
+        $(datacontainer)
+            .append($("<div/>", {
+                id: formcontainerid
+            }));
+        let container = "#" + formcontainerid;
         $(container)
             .append($("<br/>"));
         let bkeys = Object.keys(book);
@@ -427,7 +529,6 @@
 
     };
 
-
     $(document).on("click", ".mybookscanchoice", function (evt) {
         evt.preventDefault();
         let isbn = $(this).attr("isbn");
@@ -448,6 +549,238 @@
             $(this).text("... less");
         }
     });
+
+    /**
+     * prepBook - Vorbereiten zum Editieren
+     * @returns 
+     */
+    mybookscan.prepBook = function () {
+        // Anzeigen zur Editierung
+        if (Object.keys(activeBook).length === 0) {
+            return;
+        }
+        let book = activeBook;
+        let hasthumb = false;
+        let container = "#mybookscandataform";
+        $(container).children().remove();
+        $(container)
+            .append($("<br/>"));
+        let bkeys = Object.keys(book);
+        for (let ikey = 0; ikey < bkeys.length; ikey++) {
+            let fieldname = bkeys[ikey];
+            if (fieldname === "ISBN") {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<span/>", {
+                        html: "<b>" + bkeys[ikey] + "</b> " + book[bkeys[ikey]],
+                        class: "ISBN",
+                        ISBN: book[bkeys[ikey]]
+                    }));
+            } else if (fieldname === "previewLink") {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<a/>", {
+                        href: book[fieldname],
+                        target: "_blank",
+                        html: fieldname + ": " + book[fieldname]
+                    }));
+            } else if (fieldname === "infoLink") {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<a/>", {
+                        href: book[fieldname],
+                        target: "_blank",
+                        html: fieldname + ": " + book[fieldname]
+                    }));
+            } else if (fieldname === "imageLinks") {
+                let thumbnail = book[fieldname].thumbnail;
+                if (typeof thumbnail !== "undefined" && thumbnail.length > 0) {
+                    $(container)
+                        .append($("<br/>"))
+                        .append($("<img/>", {
+                            src: thumbnail,
+                            title: fieldname + ": " + thumbnail
+                        }));
+                } else {
+                    let smallThumbnail = book[fieldname].smallThumbnail;
+                    if (typeof smallThumbnail !== "undefined" && smallThumbnail.length > 0) {
+                        $(container)
+                            .append($("<br/>"))
+                            .append($("<img/>", {
+                                src: smallThumbnail,
+                                title: fieldname + ": " + smallThumbnail
+                            }));
+                    }
+                }
+            } else if (fieldname === "thumbnail" && book.thumbnail.length > 0 && hasthumb === false) {
+                hasthumb = true;
+                let thumbnail = book.thumbnail;
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<img/>", {
+                        src: thumbnail,
+                        title: fieldname + ": " + thumbnail
+                    }));
+            } else if (fieldname === "smallThumbnail" && book.smallThumbnail.length > 0 && hasthumb === false) {
+                hasthumb = true;
+                let smallThumbnail = book.smallThumbnail;
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<img/>", {
+                        src: smallThumbnail,
+                        title: fieldname + ": " + smallThumbnail
+                    }));
+            } else if ("tsserverupd,iostatus,industryIdentifiers".indexOf(fieldname) >= 0) {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<span/>", {
+                        html: "<b>" + bkeys[ikey] + "</b> " + book[bkeys[ikey]]
+                    }));
+            } else if (typeof book[fieldname] === "object") {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<span/>", {
+                        html: "<b>" + bkeys[ikey] + "</b> " + book[bkeys[ikey]]
+                    }));
+            } else {
+                /*
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<span/>", {
+                        html: "<b>" + bkeys[ikey] + "</b> " + book[bkeys[ikey]]
+                    }));
+                */
+                $(container)
+                    .append($("<div/>", {
+                            class: "form-group row",
+                            css: {
+                                width: "100%"
+                            }
+                        })
+                        .append($("<label/>", {
+                            for: bkeys[ikey],
+                            text: bkeys[ikey],
+                            class: "col-sm-3 col-form-label"
+                        }))
+                        .append($("<div/>", {
+                                class: "col-sm-9"
+                            })
+                            .append($("<input/>", {
+                                id: bkeys[ikey],
+                                class: "form-control mybookinput",
+                                type: "text",
+                                "data-mini": "true",
+                                //title: "Box, Regal o.ä. eingeben",
+                                value: book[bkeys[ikey]]
+                                //value: "0735619670"
+                            }))
+                        )
+                    );
+            }
+        }
+    };
+
+
+
+    /**
+     * storeData
+     */
+    mybookscan.storeData = function (isbn) {
+        // API-Aufruf Erfassen Kommentar und Box
+        let bookbox = $("#myscanbox").val();
+        uihelper.setCookie("box", bookbox);
+        let jqxhr = $.ajax({
+            method: "POST",
+            crossDomain: false,
+            url: "putinfobyisbn",
+            data: {
+                isbn: isbn,
+                bookbox: $("#myscanbox").val(),
+                bookcomment: $("#myscancomment").val(),
+                booktitle: activeBook.title,
+                booksubtitle: activeBook.subtitle || ""
+            }
+        }).done(function (r1, textStatus, jqXHR) {
+            let ret = JSON.parse(r1);
+            $("body").css("cursor", "");
+            //alert(JSON.parse(ret.book));
+            return;
+        }).fail(function (err) {
+            alert(err);
+            $("#myscansearch").focus();
+            return;
+        }).always(function () {
+            // nope
+        });
+    };
+
+
+    /**
+     * storeBookData
+     */
+    mybookscan.storeBookData = function (isbn) {
+        // API-Aufruf Erfassen Kommentar und Box
+        let bookbox = $("#myscanbox").val();
+        // nur netto-Änderungen
+        // INPUT in container mybookscandataform
+        // Abgleich mit activeBook
+        let selfields = {
+            ISBN: isbn
+        };
+        let insfields = {
+            ISBN: isbn
+        };
+        let updfields = {};
+        let table = "MYBOOKS";
+        $('#mybookscandataform input').each(function (index, inputfeld) {
+            console.log($(inputfeld).val());
+            let id = $(inputfeld).attr("id");
+            let oldvalue = activeBook[id];
+            let newvalue = $(inputfeld).val();
+            if (typeof oldvalue === typeof newvalue) {
+                if (oldvalue !== newvalue) {
+                    updfields[id] = newvalue;
+                }
+            } else {
+                if (typeof oldvalue === "object" && Array.isArray(oldvalue) && typeof newvalue === "string") {
+                    let newarray = newvalue.split(",");
+                }
+            }
+        });
+        if (Object.keys(updfields).length > 0) {
+            // Effektive Änderungen liegen vor
+            let jqxhr = $.ajax({
+                method: "POST",
+                crossDomain: false,
+                url: "putdatabyisbn",
+                data: {
+                    selfields: selfields,
+                    insfields: insfields,
+                    updfields: updfields
+                }
+            }).done(function (r1, textStatus, jqXHR) {
+                let ret = JSON.parse(r1);
+                $("body").css("cursor", "");
+                if (ret.error === false) {
+                    uihelper.putMessage(ret.message, 1);
+                } else {
+                    uihelper.putMessage(ret.message, 3);
+                }
+                //alert(JSON.parse(ret.book));
+                return;
+            }).fail(function (err) {
+                alert(err);
+                uihelper.putMessage(err, 3);
+                $("#myscansearch").focus();
+                return;
+            }).always(function () {
+                // nope
+            });
+        }
+    };
+
+
+
 
 
     /**
@@ -596,9 +929,9 @@
 
                     // es gibt auch ICONs, die haben eigentlich keine Beschrifung
 
-
                 } else {
                     //alert("UNCLEAR:" + transcript);
+                    // check active 
                     uihelper.beep();
                 }
 

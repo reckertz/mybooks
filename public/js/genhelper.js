@@ -60,13 +60,13 @@
                 } else {
                     sum += num; // ungeradzahlig
                 }
-                console.log(z + ":" + i + " num:" + num + " sum: " + sum);
+                //console.log(z + ":" + i + " num:" + num + " sum: " + sum);
             }
             //let pz = (10 - sum % 10) % 10;
             let pz = sum % 10;
             pz = 10 - pz;
             pz = pz % 10;
-            console.log(isbninput + "=>" + sum + "=>" + pz);
+            //console.log(isbninput + "=>" + sum + "=>" + pz);
             if (pz !== parseInt(isbninput.substr(12, 1))) {
                 return false; // falsche ISBN-13
             } else {
