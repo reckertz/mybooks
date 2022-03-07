@@ -12,8 +12,9 @@ const genhelper = require('./public/js/genhelper.js');
 
     let root = (typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global) || this;
     let isbn = require('node-isbn/index');
-    let booksbytitle = require('google-books-search');
+    //let booksbytitle = require('google-books-search');
     let dbhelper = require("./dbhelper.js");
+    let request = require("ajax-request");
     /**
      * getbyisbn - isbn oder Titel als Vorgabe
      * erst prüfen, ob schon in der Datenbank,
@@ -42,7 +43,7 @@ const genhelper = require('./public/js/genhelper.js');
             bookbox = req.body.bookbox;
         }
 
-        
+
         let bookcomment = "";
         if (req.query && typeof req.query.bookcomment === "string" && req.query.bookcomment.length > 0) {
             bookbox = req.query.bookbox;
@@ -91,7 +92,7 @@ const genhelper = require('./public/js/genhelper.js');
                             cbisbn11(null, res, ret);
                             return;
                         }
-                    }); 
+                    });
                 },
                 function (res, ret, cbisbn12) {
                     // Zugriff zum API
@@ -131,8 +132,10 @@ const genhelper = require('./public/js/genhelper.js');
                     // Sonderfall: Titelsuche, wenn ISBN nicht vorgegeben war
                     if (typeof ret.book === "object" && Object.keys(ret.book).length > 0) {
                         cbisbn12a(null, res, ret);
-                        return; 
+                        return;
                     }
+
+                    /*
                     booksbytitle.search(ret.booksearch, function(error, results) {
                         if ( ! error ) {
                             console.log(JSON.stringify(results));
@@ -144,6 +147,77 @@ const genhelper = require('./public/js/genhelper.js');
                         cbisbn12a("finish", res, ret);
                         return; 
                     });
+                    */
+                    // https://openlibrary.org/dev/docs/api/search
+                    /*
+                    {
+                        "start": 0,
+                        "num_found": 629,
+                        "docs": [
+                            {...},
+                            {...},
+                            ...
+                            {...}]
+                    }
+                    und im Detail dann bei docs:
+                    {
+                        "cover_i": 258027,
+                        "has_fulltext": true,
+                        "edition_count": 120,
+                        "title": "The Lord of the Rings",
+                        "author_name": [
+                            "J. R. R. Tolkien"
+                        ],
+                        "first_publish_year": 1954,
+                        "key": "OL27448W",
+                        "ia": [
+                            "returnofking00tolk_1",
+                            "lordofrings00tolk_1",
+                            "lordofrings00tolk_0",
+                        ],
+                        "author_key": [
+                            "OL26320A"
+                        ],
+                        "public_scan_b": true
+                    }
+                    Request:
+                    http://openlibrary.org/search.json?q=the+lord+of+the+rings  wird genutzt
+                    /search.json?q=harry%20potter&fields=*,availability&limit=1 wäre Extension der Response
+                    */
+                    let apisearch = encodeURIComponent(ret.booksearch);
+                    let url = "https://openlibrary.org/search.json";
+                    request({
+                        url: url,
+                        method: 'GET',
+                        data: {
+                            q: ret.booksearch
+                        }
+                    }, function (err, res1, body) {
+                        if (err !== null) {
+                            console.log(err);
+                            ret.error = true;
+                            ret.message = err;
+                            cbisbn12a(null, res, ret);
+                            return;
+                        } else {
+                            if (typeof body === "string") {
+                                body = JSON.parse(body);
+                            }
+                            // Extrakt übernehmen
+                            ret.booklist = [];
+                            body.docs.forEach(function(book, ibook) {
+                                ret.booklist.push({
+                                    title: book.title,
+                                    author_name: book.author_name.join("; "),
+                                    ISBN: book.isbn.join(", "),
+                                    publish_year: book.publish_year.join(", ")  
+                                });
+                            });
+                            cbisbn12a(null, res, ret);
+                            return;
+                        }
+                    });
+
                 },
                 function (res, ret, cbisbn13) {
                     // Sichern neues Buch in die Datenbank
@@ -155,7 +229,7 @@ const genhelper = require('./public/js/genhelper.js');
                     // kein Buch da
                     if (typeof ret.book === "undefined") {
                         cbisbn13(null, res, ret);
-                        return; 
+                        return;
                     }
                     console.log(ret.booksearch + " conversion and upsert");
                     let selfields = {};
@@ -210,7 +284,7 @@ const genhelper = require('./public/js/genhelper.js');
                         "canonicalVolumeLink": "http://books.google.es/books/about/Code_Complete.html?hl=&id=QnghAQAAIAAJ"
                     }
                     */
-                    let reqparm = {}; 
+                    let reqparm = {};
                     reqparm.selfields = dbhelper.cloneObject(selfields);
                     reqparm.insfields = dbhelper.cloneObject(insfields);
                     reqparm.updfields = dbhelper.cloneObject(updfields);
@@ -229,7 +303,7 @@ const genhelper = require('./public/js/genhelper.js');
                     // kein Buch da
                     if (typeof ret.book === "undefined") {
                         cbisbn14(null, res, ret);
-                        return; 
+                        return;
                     }
                     // Aufbereiten der Ausgabe MYBOOKSINFOS mit box und comment zur ISBN mit title
                     console.log(ret.booksearch + " upsert MYBOOKSINFOS");
@@ -242,7 +316,7 @@ const genhelper = require('./public/js/genhelper.js');
                     updfields.subtitle = ret.book.subtitle || "";
                     updfields.bookbox = ret.bookbox;
                     updfields.bookcomment = ret.bookcomment;
-                    let reqparm = {}; 
+                    let reqparm = {};
                     reqparm.selfields = dbhelper.cloneObject(selfields);
                     reqparm.insfields = dbhelper.cloneObject(insfields);
                     reqparm.updfields = dbhelper.cloneObject(updfields);

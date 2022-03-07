@@ -11,6 +11,7 @@ let bodyParser = require('body-parser');
 let fs = require("fs");
 let path = require("path");
 let async = require("async");
+let request = require("ajax-request");
 
 let dbhelper = require("./dbhelper.js");
 

@@ -90,8 +90,6 @@
                     }
                 }))
 
-
-
                 .append($("<button/>", {
                     class: "btn btn-info",
                     title: "SQL Kontrolle",
@@ -110,6 +108,14 @@
                         return;
                     }
                 }))
+
+                .append($("<span/>", {
+                    id: "microphoneok",
+                    css: {
+                        "margin-left": "10px"
+                    }
+                }))
+                
 
             );
         /**

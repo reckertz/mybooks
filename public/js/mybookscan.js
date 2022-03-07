@@ -353,16 +353,102 @@
             }));
         bookliste.forEach(function (book, ibook) {
             let html = ibook + ". " + book.title + " " + JSON.stringify(book);
+            let pubyear = book.publish_year.split(", ");
+            if (pubyear.length > 5) {
+                pubyear = pubyear.slice(0, 5).join(", ");
+                pubyear += " ...";
+            } else {
+                pubyear = pubyear.join(", ");
+            }
+
             $("#mybookliste")
-                .append($("<li/>", {
-                    html: html
-                }));
+                .append($("<li/>")
+                    .append($("<span/>", {
+                        html: "<b>" + book.title + "</b>"
+                    }))
+                    .append($("<span/>", {
+                        css: {
+                            "margin-left": "10px"
+                        },
+                        html: book.author_name + " " + pubyear
+                    }))
+                    .append($("<br/>"))
+                    .append($("<span/>", {
+                        id: "mybookliste" + (ibook + 1)
+                    }))
+                );
+
+            let isbncontainer = "#mybookliste" + (ibook + 1);
+            let isbncontainerx = isbncontainer + "x";
+            let isbncontainerm = isbncontainer + "m";
+            let isbns = book.ISBN.split(", ");
+            isbns.forEach(function (isbn, iisbn) {
+                if (iisbn <= 4) {
+                    $(isbncontainer)
+                        .append($("<button/>", {
+                            class: "mybookscanchoice",
+                            isbn: isbn,
+                            html: (ibook + 1) + "," + (iisbn + 1)
+                        }))
+                        .append($("<span/>", {
+                            html: isbn
+                        }));
+                } else {
+                    if (iisbn === 5) {
+                        $(isbncontainer)
+                            .append($("<span/>", {
+                                id: isbncontainerx.substr(1),
+                                css: {
+                                    display: "none"
+                                }
+                            }))
+                            .append($("<span/>", {
+                                id: isbncontainerm.substr(1),
+                                class: "showmore",
+                                css: {
+                                    "font-weight": "bold"
+                                },
+                                html: "... more"
+                            }));
+
+                    }
+                    $(isbncontainerx)
+                        .append($("<button/>", {
+                            class: "mybookscanchoice",
+                            isbn: isbn,
+                            html: (ibook + 1) + "," + (iisbn + 1)
+                        }))
+                        .append($("<span/>", {
+                            html: isbn
+                        }));
+                }
+            });
         });
 
-
-
-
     };
+
+
+    $(document).on("click", ".mybookscanchoice", function (evt) {
+        evt.preventDefault();
+        let isbn = $(this).attr("isbn");
+        $("#myscansearch").val(isbn);
+        $("#mybookscanb1").click();
+    });
+
+    $(document).on("click", ".showmore", function (evt) {
+        evt.preventDefault();
+        // span mit inner span, das gezeigt oder versteckt wird
+        let moreTarget = $(this).prev();
+        let tstatus = $(moreTarget).is(":visible");
+        if (tstatus === true) {
+            $(moreTarget).hide();
+            $(this).text("... more");
+        } else {
+            $(moreTarget).show();
+            $(this).text("... less");
+        }
+    });
+
 
     /**
      * speech - start recognition and operate speech input
@@ -371,6 +457,7 @@
      *       und Button <Buttontext>
      * @returns 
      * https://codepen.io/GeorgePark/pen/gKrVJe wohl interessant
+     * https://wiki.mozilla.org/Web_Speech_API_-_Speech_Recognition für NMozilla
      */
     mybookscan.speech = function () {
 
@@ -378,8 +465,26 @@
         window.addEventListener("DOMContentLoaded", function () {
 
             //Set speech recognition
-            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            // window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            // https://gist.github.com/alrra/3784549
+            window.SpeechRecognition = window.webkitSpeechRecognition ||
+                window.mozSpeechRecognition ||
+                window.msSpeechRecognition ||
+                window.oSpeechRecognition ||
+                window.SpeechRecognition;
+
             const recognition = new SpeechRecognition();
+
+            if (typeof recognition === "undefined") {
+                alert("Keine Sprachunterstützung");
+                $("#microphoneok").html("&#x1F3A4;");
+                $("#microphoneok").css("background-color", "red");
+
+            } else {
+                $("#microphoneok").html("&#x1F3A4;");
+                $("#microphoneok").css("background-color", "green");
+                $("#microphoneok").attr("title", "Spracheingabe ist möglich");
+            }
 
             recognition.lang = "de-DE";
             recognition.continuous = false;
@@ -387,7 +492,15 @@
             recognition.maxAlternatives = 1;
 
             //Start speech recognition
-            recognition.start();
+            try {
+                recognition.start();
+                $("#microphoneok").html("&#x1F3A4;");
+                $("#microphoneok").css("background-color", "green");
+                $("#microphoneok").attr("title", "Spracheingabe ist möglich");
+            } catch (err) {
+                $("#microphoneok").html("&#x1F3A4;");
+                $("#microphoneok").css("background-color", "red");
+            }
 
             //Listen for when the user finishes talking
             recognition.addEventListener('result', function (e) {
@@ -461,8 +574,9 @@
 
 
                 } else if (transcript.startsWith("button")) {
-                   // alert("BUTTON:" + transcript);
-                    let words = transcript.split(/\s+/);
+                    // alert("BUTTON:" + transcript);
+                    let transcript1 = transcript.replace(/\./g, "");
+                    let words = transcript1.split(/\s+/);
                     let transtext = words.slice(1).join(" ");
                     let found = false;
                     // es werden alle Button-Texte analysiert
@@ -490,8 +604,28 @@
 
             });
 
+            recognition.onerror = function (event) {
+                console.log(event.error);
+                if (event.error !== "no-speech") {
+                    $("#microphoneok").html("&#x1F3A4;");
+                    $("#microphoneok").css("background-color", "red");
+                    $("#microphoneok").attr("title", event.error);
+                }
+            };
+
             //Restart speech recognition after user has finished talking
             recognition.addEventListener('end', recognition.start);
+            /*
+            recognition.addEventListener('end', function () {
+                console.log("end");
+                try {
+                    recognition.start();
+                    console.log("neuer Start");
+                } catch (err) {
+                    console.log(err.stack);
+                }
+            });
+            */
 
         });
 
