@@ -687,7 +687,8 @@
                         ret1.record = ret1.records[0];
                         if (ret1.records.length > 1) {
                             console.log("getonerecord:" + ret1.records.length);
-                            throw new Error("getonerecord:" + ret1.records.length);
+                            // nur den ersten Satz nehmen!!!
+                            ret1.record = ret1.records[0];    
                         }
                     }
                 } else {

@@ -64,11 +64,22 @@ const genhelper = require('./public/js/genhelper.js');
                 },
                 function (res, ret, cbisbn11) {
                     // Zugriff zur Datenbank
+                    /*
                     let reqparm = {
                         sel: {
                             ISBN: ret.booksearch
                         },
                         projection: {},
+                        table: "MYBOOKS"
+                    };
+                    */
+                    let sql = "SELECT MYBOOKS.*, MYBOOKSINFOS.*";
+                    sql += " FROM MYBOOKS";
+                    sql += " LEFT JOIN MYBOOKSINFOS";
+                    sql += " ON MYBOOKS.ISBN = MYBOOKSINFOS.ISBN";
+                    sql += " WHERE MYBOOKS.ISBN = '" + ret.booksearch + "'";
+                    let reqparm = {
+                        sel: sql,
                         table: "MYBOOKS"
                     };
                     dbhelper.getonerecord(db, async, null, reqparm, res, function (res, ret1) {
