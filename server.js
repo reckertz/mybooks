@@ -110,6 +110,10 @@ app.use(function (req, res, next) {
         console.log("1-" + path.resolve(__dirname + req.path));
         res.sendFile(path.resolve(__dirname + req.path));
         return;
+    } else if (req.path.indexOf("manifest.webapp") >= 0) {
+            console.log("1-" + path.resolve(__dirname + req.path));
+            res.sendFile(path.resolve(__dirname + req.path));
+            return;        
     } else if (req.path === "/") {
         res.sendFile(path.resolve("public/index.html"));
         return;

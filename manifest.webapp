@@ -1,0 +1,28 @@
+{
+  "name": "mybooks",
+  "description": "ISBN with barcode, voice and keyboard",
+  "launch_path": "/index.html",
+    "developer": {
+    "name": "Rolf Eckertz",
+    "url": "http://localhost"
+  },
+  
+  "icons": {
+    "512": "/img/icon-512.png",
+    "128": "/img/icon-128.png"
+  },
+  
+  "default_locale": "de",
+  "chrome": {
+    "navigation": true
+  },
+  "type": "privileged",
+  "permissions": {
+    "audio-capture": {
+      "description": "Audio capture"
+    },
+    "speech-recognition": {
+      "description": "Speech recognition"
+    }
+  }
+}

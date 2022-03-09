@@ -292,7 +292,7 @@
      */
     mybookscan.showBook = function (booksearch, book, datacontainer) {
         let hasthumb = false;
-        debugger;
+
         $(datacontainer).children().remove();
 
         $(datacontainer)
@@ -806,6 +806,22 @@
 
         //DOM load event
         window.addEventListener("DOMContentLoaded", function () {
+            if(navigator.userAgent.indexOf("Chrome") < 0 &&  navigator.userAgent.indexOf("Edge") < 0) {
+                console.log("Browser nicht getestet für Speech-Recognition");
+                $("#microphoneok").html("&#x1F3A4;");
+                $("#microphoneok").css("background-color", "red");
+                return;
+            }
+            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+                console.log("speech recognition API supported");
+                $("#microphoneok").html("&#x1F3A4;");
+                $("#microphoneok").css("background-color", "green");
+                $("#microphoneok").attr("title", "Spracheingabe ist möglich");
+            } else {
+                console.log("speech recognition API not supported");
+                $("#microphoneok").html("&#x1F3A4;");
+                $("#microphoneok").css("background-color", "red");
+            }
 
             //Set speech recognition
             // window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -817,17 +833,6 @@
                 window.SpeechRecognition;
 
             const recognition = new SpeechRecognition();
-
-            if (typeof recognition === "undefined") {
-                alert("Keine Sprachunterstützung");
-                $("#microphoneok").html("&#x1F3A4;");
-                $("#microphoneok").css("background-color", "red");
-
-            } else {
-                $("#microphoneok").html("&#x1F3A4;");
-                $("#microphoneok").css("background-color", "green");
-                $("#microphoneok").attr("title", "Spracheingabe ist möglich");
-            }
 
             recognition.lang = "de-DE";
             recognition.continuous = false;
@@ -867,6 +872,10 @@
                         // words gegen lwords
                         let firstinput = -1;
                         if (words[1] === lwords[0]) {
+                            // nix, wenn es zum Feld keine Eingabe gibt oder keine erkannt wurde!
+                            if (words.length <= 2) {
+                                return;
+                            }
                             firstinput = 2;
                             // in jedem Fall ein Treffer, Konvention solle ein Wort sei, also SKIP-Check
                             let llen = lwords.length;
@@ -942,16 +951,23 @@
                 } else {
                     //alert("UNCLEAR:" + transcript);
                     // check active 
-                    let  focusedField = $('textarea:focus');
-                    if (focusedField !== null && typeof focusedField !== "undefined") {
-                        let oldtext = $(focusedField).text();
-                        $(focusedField).text(oldtext + "\n" + transcript);
+                    
+                    let focusedField = document.activeElement;
+                    if (focusedField !== null && typeof focusedField !== "undefined" && focusedField.tagName === "TEXTAREA" ) {
+                        let oldtext = $(focusedField).val();
+                        $(focusedField).val(oldtext + "\n" + transcript);
                     } else {
                         uihelper.beep();
                         navigator.clipboard.writeText(transcript);
                     }
                 }
             });
+
+            recognition.onstart = function (event) {
+                if (typeof event !== "undefined" && typeof event.error !== "undefined" && event.error !== null) {
+                    console.log(event.error);
+                }
+            };
 
             recognition.onerror = function (event) {
                 console.log(event.error);
