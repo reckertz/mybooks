@@ -1,8 +1,22 @@
 {
   "name": "mybooks",
   "version": "1.0.0",
-  "description": "scan books with barcode, get information with isbn, store in database sqlite3",
+  "description": "scan books with barcode, get information with isbn, store in database sqlite, https://github.com/vercel/pkg",
   "main": "server.js",
+  "bin": "server.js",
+  "pkg": {
+    "assets": [
+      "public/js/**/*",
+      "public/img/**/*",
+      "public/lib/**/*",
+      "public/css/**/*",
+      "public/*"
+    ],
+    "outputPath": "dist",
+    "targets": [
+      "node16-win-x64"
+    ]
+  },
   "scripts": {
     "test": "node server.js"
   },

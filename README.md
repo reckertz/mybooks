@@ -13,4 +13,13 @@ Book-Data are retieved by npm module node-isbn.
 
 The user can enter a box-id for the location of a book and a comment regarding the book.
 
+##installation
 
+Installation requirements are node.js and windows (so far), test on Ubuntu coming soon.
+
+After installing mybooks from github npm install, sqlite3 has to be installed additionally
+with npm install sqlite3.
+
+node.js server.js is the starting js module.
+
+Usage in the browser on port 3000, so far localhost is recommended, https will be added soon.
