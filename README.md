@@ -13,7 +13,7 @@ Book-Data are retieved by npm module node-isbn.
 
 The user can enter a box-id for the location of a book and a comment regarding the book.
 
-##installation
+## installation
 
 Installation requirements are node.js and windows (so far), test on Ubuntu coming soon.
 
