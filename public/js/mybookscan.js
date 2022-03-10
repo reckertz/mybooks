@@ -92,7 +92,7 @@
                         class: "form-control myscansearch",
                         type: "text",
                         "data-mini": "true",
-                        title: "ISBN-Barcode Scannen oder ISBN bzw. Titel per Tastatur eingeben oder diktieren 'Eingabefeld Suche <ISBN oder Titel>'"
+                        title: "ISBN-Barcode Scannen oder ISBN bzw. Titel per Tastatur eingeben oder mit Sprechen 'Eingabefeld Suche <ISBN oder Titel>'"
                         //value: "0735619670"
                     }))
 
@@ -789,14 +789,12 @@
         }
     };
 
-
-
-
-
     /**
      * speech - start recognition and operate speech input
      * dynamic recognition of focus-input fields and put input
-     * keywords: Eingabefeld <Feldname> <Texteingabe> 
+     * keywords: eingabefeld <Feldname> <Texteingabe> 
+     *       oder diktat <Feldname> <Texteingabe>  - für Anfügen an Textarea
+     *       oder als Sonderfall, wenn textarea aktives Feld ist: <Texteingabe>
      *       und Button <Buttontext>
      * @returns 
      * https://codepen.io/GeorgePark/pen/gKrVJe wohl interessant
@@ -855,13 +853,38 @@
                 $("input.markedactive").removeClass("markedactive");
                 //Get transcript of user speech & confidence percentage
                 let transcript = e.results[0][0].transcript.toLowerCase(); //.replace(/\s/g, ''),
+                uihelper.putMessage(transcript);
                 let confidence = (e.results[0][0].confidence * 100).toFixed(1);
 
                 //Check transcript
                 transcript = transcript.trim();
                 console.log("Erkannt (" + confidence + "):" + transcript);
-                if (transcript.startsWith("eingabefeld")) {
-                    //alert("EINGABEFELD:" + transcript);
+                if (transcript.startsWith("diktat")) {
+                    debugger;
+                    let words = transcript.split(/\s+/);
+                    let ifound = false;
+                    $('label').each(function (index, label) {
+                        let lwords = $(label).text().toLowerCase().split(/\s+/);
+                        if (words[1] === lwords[0]) {
+                            ifound = true;
+                            let inputid = $(label).attr("for");
+                            // TODO: INPUT type text und TEXTAREA sollten noch geprüft werden
+                            $("#" + inputid).removeClass("markedactive");
+                            $("#" + inputid).addClass("markedactive");
+                            let oldtext = $("#" + inputid).val();
+                            let newtext =  words.slice(2).join(" ");
+                            $("#" + inputid).val(oldtext + "\n" + newtext);
+                            $("#" + inputid).focus();
+                            return false;
+                        }
+                    });
+                    if (ifound === false) {
+                        // kein feld gefunden
+                        uihelper.beep();
+                        navigator.clipboard.writeText(transcript);
+                    }
+                } else if (transcript.startsWith("eingabefeld")) {
+                    //alert("EINGABE:" + transcript);
                     let words = transcript.split(/\s+/);
                     // es werden alle label-Texte analysiert
                     $('label').each(function (index, label) {
@@ -966,11 +989,15 @@
             recognition.onstart = function (event) {
                 if (typeof event !== "undefined" && typeof event.error !== "undefined" && event.error !== null) {
                     console.log(event.error);
+                    uihelper.putMessage(event.error, 3);
                 }
             };
 
             recognition.onerror = function (event) {
-                console.log(event.error);
+                if (typeof event !== "undefined" && typeof event.error !== "undefined" && event.error !== null) {
+                    console.log(event.error);
+                    uihelper.putMessage(event.error, 3);
+                }
                 if (event.error !== "no-speech") {
                     $("#microphoneok").html("&#x1F3A4;");
                     $("#microphoneok").css("background-color", "red");

@@ -1,4 +1,4 @@
-/*jshint laxbreak:true,evil:true, sub:true */
+/*jshint esversion:6,laxbreak:true,evil:true,sub:true */
 /*jslint node:true */
 /*global module,process,require,define,root,global,self,this,console,alert */
 /*global sysbase,__dirname,window,console */
@@ -7,6 +7,8 @@
 let express = require('express');
 
 let bodyParser = require('body-parser');
+let http = require("http");
+let https = require("https");
 
 let fs = require("fs");
 let path = require("path");
@@ -315,10 +317,40 @@ app.post('/getbyisbn', function (req, res) {
     }
 });
 
+var httpsoptions = {};
+httpsoptions = {
+    key: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local-key.pem", "utf8"),
+    cert: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local.pem", "utf8")
+    //ca: fs.readFileSync("C:\OpenSSL-Win64\bin\PEM\chain.pem", "utf8")
+};
+
+let httpsServer;
+
+function startServer() {
+    if (Object.keys(httpsoptions).length > 0) {
+        http.createServer(app).listen(3030);
+        console.log("http an 3030 gestartet");
+        httpsServer = https.createServer(httpsoptions, app).listen(3031);
+        console.log("https an 3031 gestartet");
+        //socketio = require('socket.io')(httpsServer);
+        //console.log("socketio gestartet an https");
+        //startSocketio(httpsServer);
+    } else {
+        httpsServer = app.listen(3000, function () {
+            console.log('Example app listening on port: 3000');
+            //socketio = require('socket.io')(httpsServer);
+            //console.log("socketio gestartet an 3000");
+            //startSocketio(httpsServer);
+        });
+    }
+}
+startServer();
 
 
-app.listen(3000, function () {
+/*
+app.listen(3003, function () {
 
-    console.log('Example app listening on port 3000!');
+    console.log('Example app listening on port 3003!');
 
 });
+*/

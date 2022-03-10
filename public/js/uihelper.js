@@ -78,16 +78,24 @@
                         return;
                     }
                 }))
-
                 .append($("<span/>", {
                     id: "microphoneok",
                     css: {
                         "margin-left": "10px"
                     }
                 }))
-
-
             );
+        /** 
+         * Fehlermeldungen 
+         */
+        $("nav")
+            .append($("<div/>", {
+                class: "navmessage",
+                css: {
+                    float: "left"
+                },
+                id: "navmessage"
+            }));
         /**
          * Header-Infos
          */
@@ -99,7 +107,6 @@
                         display: "none"
                     }
                 })
-
                 .append($("<span/>", {
                     class: "titletext",
                     css: {
@@ -150,12 +157,6 @@
                     }
                 }))
             );
-
-        $("nav")
-            .append($("<div/>", {
-                class: "navmessage",
-                id: "navmessage"
-            }));
     };
 
 
@@ -335,7 +336,6 @@
         }
     };
 
-
     uihelper.clearMessage = function () {
         $(".navmessage").attr("title", "");
         $(".navmessage").css("color", "white");
@@ -357,13 +357,7 @@
             html += "</li>";
         }
         html += "</ul>";
-        //html += "</div>";
-        $.showModal({
-            modalDialogClass: "modal-lg modal-dialog modal-dialog-scrollable",
-            backdrop: true,
-            title: "Meldungen",
-            body: html
-        });
+
         $(".newmessages").css("background-color", "grey");
         msgcount = 0;
     };
