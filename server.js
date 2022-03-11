@@ -113,9 +113,9 @@ app.use(function (req, res, next) {
         res.sendFile(path.resolve(__dirname + req.path));
         return;
     } else if (req.path.indexOf("manifest.webapp") >= 0) {
-            console.log("1-" + path.resolve(__dirname + req.path));
-            res.sendFile(path.resolve(__dirname + req.path));
-            return;        
+        console.log("1-" + path.resolve(__dirname + req.path));
+        res.sendFile(path.resolve(__dirname + req.path));
+        return;
     } else if (req.path === "/") {
         res.sendFile(path.resolve("public/index.html"));
         return;
@@ -152,7 +152,7 @@ app.post('/getbyisbn', function (req, res) {
 /**
  * putinfobyisbn - Kommentar und Box zu isbn speichern in MYBOOKSINFOS
  */
- app.post('/putinfobyisbn', function (req, res) {
+app.post('/putinfobyisbn', function (req, res) {
     let timeout = 100 * 60 * 1000; // hier: gesetzter Default
     if (req.body && typeof req.body.timeout !== "undefined" && req.body.timeout.length > 0) {
         timeout = req.body.timeout;
@@ -175,7 +175,7 @@ app.post('/getbyisbn', function (req, res) {
 /**
  * putdatabyisbn - Kommentar und Box zu isbn speichern in MYBOOKSINFOS
  */
- app.post('/putdatabyisbn', function (req, res) {
+app.post('/putdatabyisbn', function (req, res) {
     let timeout = 100 * 60 * 1000; // hier: gesetzter Default
     if (req.body && typeof req.body.timeout !== "undefined" && req.body.timeout.length > 0) {
         timeout = req.body.timeout;
@@ -195,11 +195,33 @@ app.post('/getbyisbn', function (req, res) {
 });
 
 
+/**
+ * putKLISQL - SQL-Statement sichern
+ */
+ app.post('/putKLISQL', function (req, res) {
+    let timeout = 100 * 60 * 1000; // hier: gesetzter Default
+    if (req.body && typeof req.body.timeout !== "undefined" && req.body.timeout.length > 0) {
+        timeout = req.body.timeout;
+        req.setTimeout(parseInt(timeout));
+    }
+    let rootdir = __dirname;
+    dbhelper.setonerecord (db, async, req, null, res, function (res, ret) {
+        // in ret liegen error, message und record
+        let smsg = JSON.stringify(ret);
+        res.writeHead(200, {
+            'Content-Type': 'application/text',
+            "Access-Control-Allow-Origin": "*"
+        });
+        res.end(smsg);
+        return;
+    });
+});
+
 
 /**
  * getallrecords - eingeschränkt generischer SQL-SELECT
  */
- app.get('/getallrecords', function (req, res) {
+app.get('/getallrecords', function (req, res) {
     var timeout = 10 * 60 * 1000; // hier: gesetzter Default
     if (req.query && typeof req.query.timeout !== "undefined" && req.query.timeout.length > 0) {
         timeout = req.query.timeout;
@@ -225,7 +247,7 @@ app.post('/getbyisbn', function (req, res) {
  * gleiche Rückgabestruktur - wird spannend
  */
 
- app.get('/getsql3tablesx', function (req, res) {
+app.get('/getsql3tablesx', function (req, res) {
     try {
         var sqlStmt = "SELECT name";
         sqlStmt += " FROM sqlite_master";
@@ -318,11 +340,15 @@ app.post('/getbyisbn', function (req, res) {
 });
 
 var httpsoptions = {};
-httpsoptions = {
-    key: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local-key.pem", "utf8"),
-    cert: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local.pem", "utf8")
-    //ca: fs.readFileSync("C:\OpenSSL-Win64\bin\PEM\chain.pem", "utf8")
-};
+
+if (fs.existsSync("C:/Tools/mkcertinstall/mybooks.local-key.pem") &&
+    fs.existsSync("C:/Tools/mkcertinstall/mybooks.local.pem")) {
+    httpsoptions = {
+        key: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local-key.pem", "utf8"),
+        cert: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local.pem", "utf8")
+        //ca: fs.readFileSync("C:\OpenSSL-Win64\bin\PEM\chain.pem", "utf8")
+    };
+}
 
 let httpsServer;
 

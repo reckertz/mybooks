@@ -280,29 +280,31 @@
                             uihelper.putMessage("sqlutils:" + " Erst ein SELECT-Statement erfassen", 3);
                             return;
                         }
-                        let updfields = {};
                         let sqlkey = md5(sel);
-                        updfields["$setOnInsert"] = {
+                        let selfields = {
                             sqlkey: sqlkey
                         };
-                        updfields["$set"] = {
+                        let insfields = {
+                            sqlkey: sqlkey
+                        };
+                        let updfields = {
                             sel: sel,
                             comment: selrecord.comment,
                             username: "anonymous"
                         };
-                        let selfields = {
-                            sqlkey: sqlkey
-                        };
-                        let api = "insertKLISQL";
+
+                        let api = "putKLISQL";
                         let table = "KLISQL";
 
                         let jqxhr = $.ajax({
                             method: "POST",
                             crossDomain: false,
-                            url: "insertKLISQL",
+                            url: "putKLISQL",
                             data: {
+                                selfields: selfields,
+                                insfields: insfields,
                                 updfields: updfields,
-                                selfields: selfields
+                                table: table
                             }
                         }).done(function (r1, textStatus, jqXHR) {
                             let j1 = JSON.parse(r1);
@@ -313,7 +315,7 @@
                             }
                             return;
                         }).fail(function (err) {
-                            sysbase.putMessage("KLISQL AJAX ERROR:" + err.message);
+                            uihelper.putMessage("KLISQL AJAX ERROR:" + err.message);
                             return;
                         }).always(function () {
                             // nope

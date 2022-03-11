@@ -217,15 +217,43 @@ const genhelper = require('./public/js/genhelper.js');
                             // Extrakt übernehmen
                             ret.booklist = [];
                             body.docs.forEach(function (book, ibook) {
+                                let author_name = "";
+                                if (typeof book.author_name === "string") {
+                                    author_name = book.author_name;
+                                } else if (typeof book.author_name === "object" && Array.isArray(book.author_name) && book.author_name.length > 0) {
+                                    author_name = book.author_name.join("; ");
+                                }
+                                let lisbn = "";
+                                if (typeof book.lisbn === "string") {
+                                    lisbn = book.lisbn;
+                                } else if (typeof book.lisbn === "object" && Array.isArray(book.lisbn) && book.lisbn.length > 0) {
+                                    lisbn = book.lisbn.join(", ");
+                                }
+                                let publish_year = "";
+                                if (typeof book.publish_year === "string") {
+                                    publish_year = book.publish_year;
+                                } else if (typeof book.publish_year === "object" && Array.isArray(book.publish_year) && book.publish_year.length > 0) {
+                                    publish_year = book.publish_year.join(", ");
+                                }
                                 ret.booklist.push({
                                     title: book.title,
-                                    author_name: book.author_name.join("; "),
-                                    ISBN: book.isbn.join(", "),
-                                    publish_year: book.publish_year.join(", ")
+                                    author_name: author_name,
+                                    ISBN: lisbn,
+                                    publish_year: publish_year
                                 });
                             });
-                            cbisbn12a(null, res, ret);
-                            return;
+                            if (ret.booklist.length > 0) {
+                                ret.error = false;
+                                ret.message = ret.booklist.length + " Bücher gefunden";
+                                cbisbn12a(null, res, ret);
+                                return;    
+                            } else {
+                                
+                                ret.error = true;
+                                ret.message = ret.booksearch  + " Keine Bücher gefunden";
+                                cbisbn12a(null, res, ret);
+                                return;
+                            }
                         }
                     });
 
@@ -359,7 +387,7 @@ const genhelper = require('./public/js/genhelper.js');
      * @param {*} req 
      * @param {*} reqparm
      * @param {*} res 
-     * @param {*} cbisbn1 
+     * @param {*} cbisbn2 
      * callback mit function (res, ret)
      */
     mybooksutils.putinfobyisbn = function (db, rootdir, fs, async, req, reqparm, res, cbisbn2) {
@@ -443,7 +471,7 @@ const genhelper = require('./public/js/genhelper.js');
      * @param {*} req 
      * @param {*} reqparm
      * @param {*} res 
-     * @param {*} cbisbn1 
+     * @param {*} cbisbn3 
      * callback mit function (res, ret)
      */
     mybooksutils.putdatabyisbn = function (db, rootdir, fs, async, req, reqparm, res, cbisbn3) {

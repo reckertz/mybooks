@@ -83,20 +83,26 @@
         let updfields = {};
         let table = "";
         let firma = "";
-        if (typeof req !== "undefined" && req !== null) {
-            if (req.body && typeof req.body.selfields !== "undefined" && req.body.selfields.length > 0) {
+        if (typeof req !== "undefined" && req !== null && req.body) {
+            if (typeof req.body.selfields === "string" && req.body.selfields.length > 0) {
                 selfields = JSON.parse(req.body.selfields);
+            } else if (typeof req.body.selfields === "object" && Object.keys(req.body.selfields).length > 0) {
+                selfields = req.body.selfields;
             }
-            if (req.body && typeof req.body.insfields !== "undefined" && req.body.insfields.length > 0) {
+            if (typeof req.body.insfields === "string" && req.body.insfields.length > 0) {
                 insfields = JSON.parse(req.body.insfields);
+            } else if (typeof req.body.insfields === "object" && Object.keys(req.body.insfields).length > 0) {
+                insfields = req.body.insfields;
             }
-            if (req.body && typeof req.body.updfields !== "undefined" && req.body.updfields.length > 0) {
+            if (typeof req.body.updfields === "string" && req.body.updfields.length > 0) {
                 updfields = JSON.parse(req.body.updfields);
+            } else if (typeof req.body.updfields === "object" && Object.keys(req.body.updfields).length > 0) {
+                updfields = req.body.updfields;
             }
-            if (req.body && typeof req.body.table !== "undefined" && req.body.table.length > 0) {
+            if (typeof req.body.table !== "undefined" && req.body.table.length > 0) {
                 table = req.body.table;
             }
-            if (req.body && typeof req.body.firma !== "undefined" && req.body.firma.length > 0) {
+            if (typeof req.body.firma !== "undefined" && req.body.firma.length > 0) {
                 firma = req.body.firma;
             }
         } else {

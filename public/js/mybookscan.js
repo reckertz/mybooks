@@ -276,7 +276,7 @@
             $("#myscansearch").focus();
             return;
         }).fail(function (err) {
-            alert(err);
+            alert(err.statusText);
             $("#myscansearch").focus();
             return;
         }).always(function () {
@@ -804,7 +804,7 @@
 
         //DOM load event
         window.addEventListener("DOMContentLoaded", function () {
-            if(navigator.userAgent.indexOf("Chrome") < 0 &&  navigator.userAgent.indexOf("Edge") < 0) {
+            if (navigator.userAgent.indexOf("Chrome") < 0 && navigator.userAgent.indexOf("Edge") < 0) {
                 console.log("Browser nicht getestet für Speech-Recognition");
                 $("#microphoneok").html("&#x1F3A4;");
                 $("#microphoneok").css("background-color", "red");
@@ -872,7 +872,7 @@
                             $("#" + inputid).removeClass("markedactive");
                             $("#" + inputid).addClass("markedactive");
                             let oldtext = $("#" + inputid).val();
-                            let newtext =  words.slice(2).join(" ");
+                            let newtext = words.slice(2).join(" ");
                             $("#" + inputid).val(oldtext + "\n" + newtext);
                             $("#" + inputid).focus();
                             return false;
@@ -974,9 +974,9 @@
                 } else {
                     //alert("UNCLEAR:" + transcript);
                     // check active 
-                    
+
                     let focusedField = document.activeElement;
-                    if (focusedField !== null && typeof focusedField !== "undefined" && focusedField.tagName === "TEXTAREA" ) {
+                    if (focusedField !== null && typeof focusedField !== "undefined" && focusedField.tagName === "TEXTAREA") {
                         let oldtext = $(focusedField).val();
                         $(focusedField).val(oldtext + "\n" + transcript);
                     } else {

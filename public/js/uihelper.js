@@ -17,7 +17,6 @@
      * @param {*} mode - Modus online oder offline, online ist Default
      */
     uihelper.init = function (mode) {
-
         /**
          * Icons für die Navigation und die Bedienung
          */
@@ -28,24 +27,7 @@
                         float: "left"
                     }
                 })
-                .append($("<button/>", {
-                    class: "btn btn-danger klirestart",
-                    html: "&#x1F680;",
-                    title: "Zurück zum Hauptmenue",
-                    css: {
-                        float: "left",
-                        "margin-left": "20px"
-                    },
-                    click: function (evt) {
-                        evt.preventDefault();
-                        /*
-                        uihelper.navigateTo("kla1000.start", {
-                            restart: true
-                        });
-                        */
-                    }
-                }))
-
+                
                 .append($("<button/>", {
                     class: "btn btn-danger newmessages",
                     title: "Nachrichten",
@@ -308,6 +290,9 @@
     let msgcount = 0;
     uihelper.putMessage = function (message, severity) {
         console.log("MSG:" + message);
+        if (messages.length > 0 && message.trim() === messages[messages.length - 1].message.trim()) {
+            return;
+        }
         msgcount++;
         if (typeof severity === "undefined") {
             severity = 1;
@@ -358,6 +343,10 @@
         }
         html += "</ul>";
 
+        // TODO: height auf full screen ausrichten
+        var myWindow = window.open("", "Messages","top=0,width=600,height='" +  screen.height + "'");
+        myWindow.document.write(html);
+           
         $(".newmessages").css("background-color", "grey");
         msgcount = 0;
     };
