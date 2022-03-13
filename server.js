@@ -24,6 +24,10 @@ let dbfilename = "";
 async.waterfall(
     [
         function (cb101) {
+            let dbdir = path.join(__dirname, 'data');
+            if (!fs.existsSync(dbdir)) {
+                fs.mkdirSync(dbdir);
+            }
             dbfilename = path.join(__dirname, 'data', 'mybooks.db3');
             if (fs.existsSync(dbfilename)) {
                 //file exists
