@@ -803,223 +803,223 @@
     mybookscan.speech = function () {
 
         //DOM load event
-        window.addEventListener("DOMContentLoaded", function () {
-            if (navigator.userAgent.indexOf("Chrome") < 0 && navigator.userAgent.indexOf("Edge") < 0) {
-                console.log("Browser nicht getestet für Speech-Recognition");
-                $("#microphoneok").html("&#x1F3A4;");
-                $("#microphoneok").css("background-color", "red");
-                return;
-            }
-            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-                console.log("speech recognition API supported");
-                $("#microphoneok").html("&#x1F3A4;");
-                $("#microphoneok").css("background-color", "green");
-                $("#microphoneok").attr("title", "Spracheingabe ist möglich");
-            } else {
-                console.log("speech recognition API not supported");
-                $("#microphoneok").html("&#x1F3A4;");
-                $("#microphoneok").css("background-color", "red");
-            }
+        // window.addEventListener("DOMContentLoaded", function () {
+        if (navigator.userAgent.indexOf("Chrome") < 0 && navigator.userAgent.indexOf("Edge") < 0) {
+            console.log("Browser nicht getestet für Speech-Recognition");
+            $("#microphoneok").html("&#x1F3A4;");
+            $("#microphoneok").css("background-color", "red");
+            return;
+        }
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            console.log("speech recognition API supported");
+            $("#microphoneok").html("&#x1F3A4;");
+            $("#microphoneok").css("background-color", "green");
+            $("#microphoneok").attr("title", "Spracheingabe ist möglich");
+        } else {
+            console.log("speech recognition API not supported");
+            $("#microphoneok").html("&#x1F3A4;");
+            $("#microphoneok").css("background-color", "red");
+        }
 
-            //Set speech recognition
-            // window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            // https://gist.github.com/alrra/3784549
-            window.SpeechRecognition = window.webkitSpeechRecognition ||
-                window.mozSpeechRecognition ||
-                window.msSpeechRecognition ||
-                window.oSpeechRecognition ||
-                window.SpeechRecognition;
+        //Set speech recognition
+        // window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        // https://gist.github.com/alrra/3784549
+        window.SpeechRecognition = window.webkitSpeechRecognition ||
+            window.mozSpeechRecognition ||
+            window.msSpeechRecognition ||
+            window.oSpeechRecognition ||
+            window.SpeechRecognition;
 
-            const recognition = new SpeechRecognition();
+        const recognition = new SpeechRecognition();
 
-            recognition.lang = "de-DE";
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
+        recognition.lang = "de-DE";
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
 
-            //Start speech recognition
-            try {
-                recognition.start();
-                $("#microphoneok").html("&#x1F3A4;");
-                $("#microphoneok").css("background-color", "green");
-                $("#microphoneok").attr("title", "Spracheingabe ist möglich");
-            } catch (err) {
-                $("#microphoneok").html("&#x1F3A4;");
-                $("#microphoneok").css("background-color", "red");
-            }
+        //Start speech recognition
+        try {
+            recognition.start();
+            $("#microphoneok").html("&#x1F3A4;");
+            $("#microphoneok").css("background-color", "green");
+            $("#microphoneok").attr("title", "Spracheingabe ist möglich");
+        } catch (err) {
+            $("#microphoneok").html("&#x1F3A4;");
+            $("#microphoneok").css("background-color", "red");
+        }
 
-            //Listen for when the user finishes talking
-            recognition.addEventListener('result', function (e) {
-                $("input.markedactive").removeClass("markedactive");
-                //Get transcript of user speech & confidence percentage
-                let transcript = e.results[0][0].transcript.toLowerCase(); //.replace(/\s/g, ''),
-                uihelper.putMessage(transcript);
-                let confidence = (e.results[0][0].confidence * 100).toFixed(1);
+        //Listen for when the user finishes talking
+        recognition.addEventListener('result', function (e) {
+            $("input.markedactive").removeClass("markedactive");
+            //Get transcript of user speech & confidence percentage
+            let transcript = e.results[0][0].transcript.toLowerCase(); //.replace(/\s/g, ''),
+            uihelper.putMessage(transcript);
+            let confidence = (e.results[0][0].confidence * 100).toFixed(1);
 
-                //Check transcript
-                transcript = transcript.trim();
-                console.log("Erkannt (" + confidence + "):" + transcript);
-                if (transcript.startsWith("diktat")) {
-                    debugger;
-                    let words = transcript.split(/\s+/);
-                    let ifound = false;
-                    $('label').each(function (index, label) {
-                        let lwords = $(label).text().toLowerCase().split(/\s+/);
-                        if (words[1] === lwords[0]) {
-                            ifound = true;
+            //Check transcript
+            transcript = transcript.trim();
+            console.log("Erkannt (" + confidence + "):" + transcript);
+            if (transcript.startsWith("diktat")) {
+                debugger;
+                let words = transcript.split(/\s+/);
+                let ifound = false;
+                $('label').each(function (index, label) {
+                    let lwords = $(label).text().toLowerCase().split(/\s+/);
+                    if (words[1] === lwords[0]) {
+                        ifound = true;
+                        let inputid = $(label).attr("for");
+                        // TODO: INPUT type text und TEXTAREA sollten noch geprüft werden
+                        $("#" + inputid).removeClass("markedactive");
+                        $("#" + inputid).addClass("markedactive");
+                        let oldtext = $("#" + inputid).val();
+                        let newtext = words.slice(2).join(" ");
+                        $("#" + inputid).val(oldtext + "\n" + newtext);
+                        $("#" + inputid).focus();
+                        return false;
+                    }
+                });
+                if (ifound === false) {
+                    // kein feld gefunden
+                    uihelper.beep();
+                    navigator.clipboard.writeText(transcript);
+                }
+            } else if (transcript.startsWith("eingabefeld")) {
+                //alert("EINGABE:" + transcript);
+                let words = transcript.split(/\s+/);
+                // es werden alle label-Texte analysiert
+                $('label').each(function (index, label) {
+                    console.log($(label).text());
+                    let ltext = $(label).text();
+                    let wtext = ltext.toLowerCase();
+                    let lwords = wtext.split(/\s+/);
+                    // words gegen lwords
+                    let firstinput = -1;
+                    if (words[1] === lwords[0]) {
+                        // nix, wenn es zum Feld keine Eingabe gibt oder keine erkannt wurde!
+                        if (words.length <= 2) {
+                            return;
+                        }
+                        firstinput = 2;
+                        // in jedem Fall ein Treffer, Konvention solle ein Wort sei, also SKIP-Check
+                        let llen = lwords.length;
+                        for (let i = 2; i < words.length; i++) {
+                            if (i >= llen) {
+                                break;
+                            }
+                            if (words[i] === lwords[i - 1]) {
+                                // skip word, das noch zum Label gehört
+                                firstinput = i;
+                            } else {
+                                break;
+                            }
+                        }
+                        if (firstinput > -1) {
+                            let newtext = words.slice(firstinput).join(" ");
+                            // find input field
                             let inputid = $(label).attr("for");
-                            // TODO: INPUT type text und TEXTAREA sollten noch geprüft werden
                             $("#" + inputid).removeClass("markedactive");
                             $("#" + inputid).addClass("markedactive");
-                            let oldtext = $("#" + inputid).val();
-                            let newtext = words.slice(2).join(" ");
-                            $("#" + inputid).val(oldtext + "\n" + newtext);
-                            $("#" + inputid).focus();
+                            if (ltext.startsWith("Suche")) {
+                                // dediziert prüfen ISBN mit spezieller Aufbereitung
+                                let isbncandidate = newtext;
+                                isbncandidate = isbncandidate.replace(/-/g, "");
+                                isbncandidate = isbncandidate.replace(/ /g, "");
+                                if (genhelper.isISBN(isbncandidate)) {
+                                    console.log("ISBN-Suche:" + isbncandidate);
+                                    $("#" + inputid).val(isbncandidate);
+                                    $("#mybookscanb1").click();
+                                    return false;
+                                }
+                            }
+                            console.log("Eingabefeld " + ltext + ":" + newtext);
+                            $("#" + inputid).val(newtext);
                             return false;
                         }
-                    });
-                    if (ifound === false) {
-                        // kein feld gefunden
-                        uihelper.beep();
-                        navigator.clipboard.writeText(transcript);
                     }
-                } else if (transcript.startsWith("eingabefeld")) {
-                    //alert("EINGABE:" + transcript);
-                    let words = transcript.split(/\s+/);
-                    // es werden alle label-Texte analysiert
-                    $('label').each(function (index, label) {
-                        console.log($(label).text());
-                        let ltext = $(label).text();
-                        let wtext = ltext.toLowerCase();
-                        let lwords = wtext.split(/\s+/);
-                        // words gegen lwords
-                        let firstinput = -1;
-                        if (words[1] === lwords[0]) {
-                            // nix, wenn es zum Feld keine Eingabe gibt oder keine erkannt wurde!
-                            if (words.length <= 2) {
-                                return;
-                            }
-                            firstinput = 2;
-                            // in jedem Fall ein Treffer, Konvention solle ein Wort sei, also SKIP-Check
-                            let llen = lwords.length;
-                            for (let i = 2; i < words.length; i++) {
-                                if (i >= llen) {
-                                    break;
-                                }
-                                if (words[i] === lwords[i - 1]) {
-                                    // skip word, das noch zum Label gehört
-                                    firstinput = i;
-                                } else {
-                                    break;
-                                }
-                            }
-                            if (firstinput > -1) {
-                                let newtext = words.slice(firstinput).join(" ");
-                                // find input field
-                                let inputid = $(label).attr("for");
-                                $("#" + inputid).removeClass("markedactive");
-                                $("#" + inputid).addClass("markedactive");
-                                if (ltext.startsWith("Suche")) {
-                                    // dediziert prüfen ISBN mit spezieller Aufbereitung
-                                    let isbncandidate = newtext;
-                                    isbncandidate = isbncandidate.replace(/-/g, "");
-                                    isbncandidate = isbncandidate.replace(/ /g, "");
-                                    if (genhelper.isISBN(isbncandidate)) {
-                                        console.log("ISBN-Suche:" + isbncandidate);
-                                        $("#" + inputid).val(isbncandidate);
-                                        $("#mybookscanb1").click();
-                                        return false;
-                                    }
-                                }
-                                console.log("Eingabefeld " + ltext + ":" + newtext);
-                                $("#" + inputid).val(newtext);
-                                return false;
-                            }
-                        }
 
-                        /*
-                        var forAttr = $(this).attr('for');
-                        $next = $(this).next();
-                        if($next.attr('id') == forAttr) {
-                            $(this).attr('for', forAttr + index);
-                            $next.attr('id', forAttr + index);
-                        }
-                        */
-                    });
+                    /*
+                    var forAttr = $(this).attr('for');
+                    $next = $(this).next();
+                    if($next.attr('id') == forAttr) {
+                        $(this).attr('for', forAttr + index);
+                        $next.attr('id', forAttr + index);
+                    }
+                    */
+                });
 
 
-                } else if (transcript.startsWith("button")) {
-                    // alert("BUTTON:" + transcript);
-                    let transcript1 = transcript.replace(/\./g, "");
-                    let words = transcript1.split(/\s+/);
-                    let transtext = words.slice(1).join(" ");
-                    let found = false;
-                    // es werden alle Button-Texte analysiert
-                    // die Texte müssen immer komplett gesprochen werden
-                    $('button').each(function (index, button) {
-                        console.log($(button).text());
-                        let btext = $(button).text();
-                        let btextlow = btext.toLowerCase();
-                        if (transtext === btextlow) {
-                            $(button).click();
-                            found = true;
-                            return false;
-                        }
-                    });
+            } else if (transcript.startsWith("button")) {
+                // alert("BUTTON:" + transcript);
+                let transcript1 = transcript.replace(/\./g, "");
+                let words = transcript1.split(/\s+/);
+                let transtext = words.slice(1).join(" ");
+                let found = false;
+                // es werden alle Button-Texte analysiert
+                // die Texte müssen immer komplett gesprochen werden
+                $('button').each(function (index, button) {
+                    console.log($(button).text());
+                    let btext = $(button).text();
+                    let btextlow = btext.toLowerCase();
+                    if (transtext === btextlow) {
+                        $(button).click();
+                        found = true;
+                        return false;
+                    }
+                });
 
-                    // es kann auch input type=button,submit, geben, wäre zweiter Ansatz
+                // es kann auch input type=button,submit, geben, wäre zweiter Ansatz
 
-                    // es gibt auch ICONs, die haben eigentlich keine Beschrifung
+                // es gibt auch ICONs, die haben eigentlich keine Beschrifung
 
+            } else {
+                //alert("UNCLEAR:" + transcript);
+                // check active 
+
+                let focusedField = document.activeElement;
+                if (focusedField !== null && typeof focusedField !== "undefined" && focusedField.tagName === "TEXTAREA") {
+                    let oldtext = $(focusedField).val();
+                    $(focusedField).val(oldtext + "\n" + transcript);
                 } else {
-                    //alert("UNCLEAR:" + transcript);
-                    // check active 
-
-                    let focusedField = document.activeElement;
-                    if (focusedField !== null && typeof focusedField !== "undefined" && focusedField.tagName === "TEXTAREA") {
-                        let oldtext = $(focusedField).val();
-                        $(focusedField).val(oldtext + "\n" + transcript);
-                    } else {
-                        uihelper.beep();
-                        navigator.clipboard.writeText(transcript);
-                    }
+                    uihelper.beep();
+                    navigator.clipboard.writeText(transcript);
                 }
-            });
-
-            recognition.onstart = function (event) {
-                if (typeof event !== "undefined" && typeof event.error !== "undefined" && event.error !== null) {
-                    console.log(event.error);
-                    uihelper.putMessage(event.error, 3);
-                }
-            };
-
-            recognition.onerror = function (event) {
-                if (typeof event !== "undefined" && typeof event.error !== "undefined" && event.error !== null) {
-                    console.log(event.error);
-                    uihelper.putMessage(event.error, 3);
-                }
-                if (event.error !== "no-speech") {
-                    $("#microphoneok").html("&#x1F3A4;");
-                    $("#microphoneok").css("background-color", "red");
-                    $("#microphoneok").attr("title", event.error);
-                }
-            };
-
-            //Restart speech recognition after user has finished talking
-            recognition.addEventListener('end', recognition.start);
-            /*
-            recognition.addEventListener('end', function () {
-                console.log("end");
-                try {
-                    recognition.start();
-                    console.log("neuer Start");
-                } catch (err) {
-                    console.log(err.stack);
-                }
-            });
-            */
-
+            }
         });
+
+        recognition.onstart = function (event) {
+            if (typeof event !== "undefined" && typeof event.error !== "undefined" && event.error !== null) {
+                console.log(event.error);
+                uihelper.putMessage(event.error, 3);
+            }
+        };
+
+        recognition.onerror = function (event) {
+            if (typeof event !== "undefined" && typeof event.error !== "undefined" && event.error !== null) {
+                console.log(event.error);
+                uihelper.putMessage(event.error, 3);
+            }
+            if (event.error !== "no-speech") {
+                $("#microphoneok").html("&#x1F3A4;");
+                $("#microphoneok").css("background-color", "red");
+                $("#microphoneok").attr("title", event.error);
+            }
+        };
+
+        //Restart speech recognition after user has finished talking
+        recognition.addEventListener('end', recognition.start);
+        /*
+        recognition.addEventListener('end', function () {
+            console.log("end");
+            try {
+                recognition.start();
+                console.log("neuer Start");
+            } catch (err) {
+                console.log(err.stack);
+            }
+        });
+        */
+
+        // });
 
     };
 

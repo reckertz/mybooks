@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Rolf's Book-App</title>
     <link rel="manifest" href="manifest.webapp">
-
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
     <link rel="stylesheet" type="text/css" href="/node_modules/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" type="text/css"
@@ -20,9 +20,10 @@
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/select/1.3.4/js/dataTables.select.min.js"></script>
-    
+
     <script src="lib/js.cookie.min.js"></script>
 
+    <script src="js/mybooksplash.js"></script>
     <script src="js/mybookscan.js"></script>
     <!--script src="js/mybooksearch.js"></script-->
     <script src="js/uihelper.js"></script>
@@ -33,8 +34,65 @@
         .markedactive {
             background: mistyrose;
         }
+
         .markedinactive {
             background: white;
+        }
+
+        /* https://stackoverflow.com/questions/36433961/css3-marquee-effect-without-empty-space */
+        /* usage: <p class="marquee">   <span>this is a</span> . . . */
+        .marquee {
+            background-color: #ddd;
+            width: 500px;
+            margin: 0 auto;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .marquee span {
+            display: inline-block;
+            font-size: 30px;
+            position: relative;
+            left: 100%;
+            animation: marquee 8s linear infinite;
+        }
+
+        .marquee:hover span {
+            animation-play-state: paused;
+        }
+
+        .marquee span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .marquee span:nth-child(2) {
+            animation-delay: 0.8s;
+        }
+
+        .marquee span:nth-child(3) {
+            animation-delay: 1.2s;
+        }
+
+        .marquee span:nth-child(4) {
+            animation-delay: 1.6s;
+        }
+
+        .marquee span:nth-child(5) {
+            animation-delay: 2.4s;
+        }
+
+        .marquee span:nth-child(6) {
+            animation-delay: 3.2s;
+        }
+
+        @keyframes marquee {
+            0% {
+                left: 100%;
+            }
+
+            100% {
+                left: -100%;
+            }
         }
     </style>
 </head>
@@ -54,9 +112,16 @@
 
                     }
                 });
+            } else if (typeof target === "string" && target.length > 0 && target === "mybookscan") {
+                uihelper.navigateTo("mybookscan.show", {
+                    cb6000: function (err) {
+
+                    }
+                });
+
             } else {
                 // erst mal dedizierter Start mit Scannen
-                mybookscan.show();
+                mybooksplash.show();
             }
         });
     </script>

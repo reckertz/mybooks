@@ -12,6 +12,15 @@
     let messages = [];
     let modus = "";
 
+    let logindata = {};
+    
+    /**
+     * getLoginData - teilen der Logindaten
+     */
+    uihelper.getLoginData = function() {
+        return logindata;
+    };
+
     /**
      * Initialisiert den Breadcrumb-Stack und das Hauptmenue inkl. Event-Routinen
      * @param {*} mode - Modus online oder offline, online ist Default
@@ -28,6 +37,14 @@
                     }
                 })
                 
+                .append($("<span/>", {
+                    id: "mybookusername",
+                    html: "&nbsp;",
+                    css: {
+                        "margin-left": "10px"
+                    }
+                }))
+
                 .append($("<button/>", {
                     class: "btn btn-danger newmessages",
                     title: "Nachrichten",
@@ -67,6 +84,8 @@
                     }
                 }))
             );
+        let username = uihelper.getLoginData().username || "";
+        $("#mybookusername").text(username);
         /** 
          * Fehlermeldungen 
          */
