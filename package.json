@@ -44,6 +44,7 @@
     "jshint": "^2.13.4",
     "jslint": "^0.12.1",
     "node-isbn": "^1.6.1",
-    "sqlite3": "^5.0.2"
+    "sqlite3": "^5.0.2",
+    "superagent": "^7.1.1"
   }
 }

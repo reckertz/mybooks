@@ -9,6 +9,8 @@
     let root = (typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global) || this;
 
     let activeBook = {};
+    let recognition;
+    let recognitionEventListener;
 
     mybookscan.show = function () {
         uihelper.init("online");
@@ -92,10 +94,15 @@
                         class: "form-control myscansearch",
                         type: "text",
                         "data-mini": "true",
-                        title: "ISBN-Barcode Scannen oder ISBN bzw. Titel per Tastatur eingeben oder mit Sprechen 'Eingabefeld Suche <ISBN oder Titel>'"
+                        title: "ISBN-Barcode Scannen oder ISBN bzw. Titel per Tastatur eingeben oder mit Sprechen 'Eingabefeld Suche <ISBN oder Titel>'",
                         //value: "0735619670"
+                        keydown: function (event) {
+                            if (event.which == 13) {
+                                event.preventDefault();
+                                $("#mybookscanb1").click();
+                            }
+                        }
                     }))
-
                 )
             )
 
@@ -249,7 +256,7 @@
         let booksearch = $("#myscansearch").val();
         let jqxhr = $.ajax({
             method: "POST",
-            crossDomain: false,
+            crossDomain: true,
             url: "getbyisbn",
             data: {
                 booksearch: booksearch
@@ -361,13 +368,18 @@
         $(container)
             .append($("<br/>"));
         let bkeys = Object.keys(book);
+        let i = bkeys.indexOf("ISBN");
+        if (i < 0) {
+            alert("Problem");
+            bkeys.unshift(booksearch);
+        }
         for (let ikey = 0; ikey < bkeys.length; ikey++) {
             let fieldname = bkeys[ikey];
             if (fieldname === "ISBN") {
                 $(container)
                     .append($("<br/>"))
                     .append($("<span/>", {
-                        html: bkeys[ikey] + " " + book[bkeys[ikey]],
+                        html: "<b>" + bkeys[ikey] + "</b> " + book[bkeys[ikey]],
                         class: "ISBN",
                         ISBN: book[bkeys[ikey]]
                     }));
@@ -433,7 +445,7 @@
                 $(container)
                     .append($("<br/>"))
                     .append($("<span/>", {
-                        html: bkeys[ikey] + " " + book[bkeys[ikey]]
+                        html: "<b>" + bkeys[ikey] + "</b> " + book[bkeys[ikey]]
                     }));
             }
         }
@@ -464,16 +476,29 @@
             }));
         bookliste.forEach(function (book, ibook) {
             let html = ibook + ". " + book.title + " " + JSON.stringify(book);
-            let pubyear = book.publish_year.split(", ");
-            if (pubyear.length > 5) {
-                pubyear = pubyear.slice(0, 5).join(", ");
-                pubyear += " ...";
-            } else {
-                pubyear = pubyear.join(", ");
+            let pubyear = "";
+            if (typeof book.publish_year !== "undefined") {
+                pubyear = book.publish_year.split(", ");
+                if (pubyear.length > 5) {
+                    pubyear = pubyear.slice(0, 5).join(", ");
+                    pubyear += " ...";
+                } else {
+                    pubyear = pubyear.join(", ");
+                }
+            } else if (typeof book.publishedDate !== "undefined") {
+                pubyear = book.publishedDate;
+            }
+            let authorstring = "";
+            if (typeof book.authors !== "undefined") {
+                authorstring = book.authors;
+            } else if (typeof book.author_name !== "undefined") {
+                authorstring = book.author_name;
             }
 
             $("#mybookliste")
-                .append($("<li/>")
+                .append($("<li/>", {
+                        title: book.title
+                    })
                     .append($("<span/>", {
                         html: "<b>" + book.title + "</b>"
                     }))
@@ -481,7 +506,7 @@
                         css: {
                             "margin-left": "10px"
                         },
-                        html: book.author_name + " " + pubyear
+                        html: authorstring + " " + pubyear
                     }))
                     .append($("<br/>"))
                     .append($("<span/>", {
@@ -492,48 +517,64 @@
             let isbncontainer = "#mybookliste" + (ibook + 1);
             let isbncontainerx = isbncontainer + "x";
             let isbncontainerm = isbncontainer + "m";
-            let isbns = book.ISBN.split(", ");
-            isbns.forEach(function (isbn, iisbn) {
-                if (iisbn <= 4) {
-                    $(isbncontainer)
-                        .append($("<button/>", {
-                            class: "mybookscanchoice",
-                            isbn: isbn,
-                            html: (ibook + 1) + "," + (iisbn + 1)
-                        }))
-                        .append($("<span/>", {
-                            html: isbn
-                        }));
-                } else {
-                    if (iisbn === 5) {
-                        $(isbncontainer)
-                            .append($("<span/>", {
-                                id: isbncontainerx.substr(1),
-                                css: {
-                                    display: "none"
-                                }
-                            }))
-                            .append($("<span/>", {
-                                id: isbncontainerm.substr(1),
-                                class: "showmore",
-                                css: {
-                                    "font-weight": "bold"
-                                },
-                                html: "... more"
-                            }));
-
-                    }
+            if (typeof book.ISBN !== "undefined") {
+                let isbns = book.ISBN.split(",");
+                if (isbns === null || isbns.length === 0) {
                     $(isbncontainerx)
-                        .append($("<button/>", {
-                            class: "mybookscanchoice",
-                            isbn: isbn,
-                            html: (ibook + 1) + "," + (iisbn + 1)
-                        }))
                         .append($("<span/>", {
-                            html: isbn
+                            html: " Ohne ISBN "
                         }));
                 }
-            });
+                isbns.forEach(function (isbn, iisbn) {
+                    isbn = isbn.trim();
+                    if (isbn.length > 0) {
+                        if (iisbn <= 4) {
+                            $(isbncontainer)
+                                .append($("<button/>", {
+                                    class: "mybookscanchoice",
+                                    isbn: isbn,
+                                    html: (ibook + 1) + "," + (iisbn + 1)
+                                }))
+                                .append($("<span/>", {
+                                    html: isbn
+                                }));
+                        } else {
+                            if (iisbn === 5) {
+                                $(isbncontainer)
+                                    .append($("<span/>", {
+                                        id: isbncontainerx.substr(1),
+                                        css: {
+                                            display: "none"
+                                        }
+                                    }))
+                                    .append($("<span/>", {
+                                        id: isbncontainerm.substr(1),
+                                        class: "showmore",
+                                        css: {
+                                            "font-weight": "bold"
+                                        },
+                                        html: "... more"
+                                    }));
+
+                            }
+                            $(isbncontainerx)
+                                .append($("<button/>", {
+                                    class: "mybookscanchoice",
+                                    isbn: isbn,
+                                    html: (ibook + 1) + "," + (iisbn + 1)
+                                }))
+                                .append($("<span/>", {
+                                    html: isbn
+                                }));
+                        }
+                    }
+                });
+            } else {
+                $(isbncontainerx)
+                    .append($("<span/>", {
+                        html: " Ohne ISBN "
+                    }));
+            }
         });
 
     };
@@ -541,8 +582,16 @@
     $(document).on("click", ".mybookscanchoice", function (evt) {
         evt.preventDefault();
         let isbn = $(this).attr("isbn");
-        $("#myscansearch").val(isbn);
-        $("#mybookscanb1").click();
+        // DONE: isbn kann leer sein, daher abfragen und Titel des Buches in die Suche übernehmen
+        if (typeof isbn === "undefined" || isbn === null || isbn.length === 0) {
+            let suchtitel = $(this).closest("li").attr("title");
+            // https://openlibrary.org/works/OL45883W.json
+            $("#myscansearch").val(suchtitel);
+            $("#mybookscanb1").click();
+        } else {
+            $("#myscansearch").val(isbn);
+            $("#mybookscanb1").click();
+        }
     });
 
     $(document).on("click", ".showmore", function (evt) {
@@ -646,6 +695,13 @@
                         html: "<b>" + bkeys[ikey] + "</b> " + book[bkeys[ikey]]
                     }));
             } else if (typeof book[fieldname] === "object") {
+                $(container)
+                    .append($("<br/>"))
+                    .append($("<span/>", {
+                        html: "<b>" + bkeys[ikey] + "</b> " + book[bkeys[ikey]]
+                    }));
+            } else if (fieldname === "bookbox" || fieldname === "bookcomment") {
+                // nope
                 $(container)
                     .append($("<br/>"))
                     .append($("<span/>", {
@@ -830,7 +886,7 @@
             window.oSpeechRecognition ||
             window.SpeechRecognition;
 
-        const recognition = new SpeechRecognition();
+        recognition = new SpeechRecognition();
 
         recognition.lang = "de-DE";
         recognition.continuous = false;
@@ -843,148 +899,25 @@
             $("#microphoneok").html("&#x1F3A4;");
             $("#microphoneok").css("background-color", "green");
             $("#microphoneok").attr("title", "Spracheingabe ist möglich");
+            // Button für Mikrophone ausschalten ausgeben
+            $(".mybookmikro").remove();
+            $("#microphoneok")
+                .before($("<button/>", {
+                    class: "btn btn-info mybookmikro",
+                    css: {
+                        "font-weight": "bolder",
+                        float: "left",
+                        "margin-left": "20px"
+                    },
+                    html: "Mikro aus"
+                }));
         } catch (err) {
             $("#microphoneok").html("&#x1F3A4;");
             $("#microphoneok").css("background-color", "red");
         }
 
-        //Listen for when the user finishes talking
-        recognition.addEventListener('result', function (e) {
-            $("input.markedactive").removeClass("markedactive");
-            //Get transcript of user speech & confidence percentage
-            let transcript = e.results[0][0].transcript.toLowerCase(); //.replace(/\s/g, ''),
-            uihelper.putMessage(transcript);
-            let confidence = (e.results[0][0].confidence * 100).toFixed(1);
-
-            //Check transcript
-            transcript = transcript.trim();
-            console.log("Erkannt (" + confidence + "):" + transcript);
-            if (transcript.startsWith("diktat")) {
-                debugger;
-                let words = transcript.split(/\s+/);
-                let ifound = false;
-                $('label').each(function (index, label) {
-                    let lwords = $(label).text().toLowerCase().split(/\s+/);
-                    if (words[1] === lwords[0]) {
-                        ifound = true;
-                        let inputid = $(label).attr("for");
-                        // TODO: INPUT type text und TEXTAREA sollten noch geprüft werden
-                        $("#" + inputid).removeClass("markedactive");
-                        $("#" + inputid).addClass("markedactive");
-                        let oldtext = $("#" + inputid).val();
-                        let newtext = words.slice(2).join(" ");
-                        $("#" + inputid).val(oldtext + "\n" + newtext);
-                        $("#" + inputid).focus();
-                        return false;
-                    }
-                });
-                if (ifound === false) {
-                    // kein feld gefunden
-                    uihelper.beep();
-                    navigator.clipboard.writeText(transcript);
-                }
-            } else if (transcript.startsWith("eingabefeld")) {
-                //alert("EINGABE:" + transcript);
-                let words = transcript.split(/\s+/);
-                // es werden alle label-Texte analysiert
-                $('label').each(function (index, label) {
-                    console.log($(label).text());
-                    let ltext = $(label).text();
-                    let wtext = ltext.toLowerCase();
-                    let lwords = wtext.split(/\s+/);
-                    // words gegen lwords
-                    let firstinput = -1;
-                    if (words[1] === lwords[0]) {
-                        // nix, wenn es zum Feld keine Eingabe gibt oder keine erkannt wurde!
-                        if (words.length <= 2) {
-                            return;
-                        }
-                        firstinput = 2;
-                        // in jedem Fall ein Treffer, Konvention solle ein Wort sei, also SKIP-Check
-                        let llen = lwords.length;
-                        for (let i = 2; i < words.length; i++) {
-                            if (i >= llen) {
-                                break;
-                            }
-                            if (words[i] === lwords[i - 1]) {
-                                // skip word, das noch zum Label gehört
-                                firstinput = i;
-                            } else {
-                                break;
-                            }
-                        }
-                        if (firstinput > -1) {
-                            let newtext = words.slice(firstinput).join(" ");
-                            // find input field
-                            let inputid = $(label).attr("for");
-                            $("#" + inputid).removeClass("markedactive");
-                            $("#" + inputid).addClass("markedactive");
-                            if (ltext.startsWith("Suche")) {
-                                // dediziert prüfen ISBN mit spezieller Aufbereitung
-                                let isbncandidate = newtext;
-                                isbncandidate = isbncandidate.replace(/-/g, "");
-                                isbncandidate = isbncandidate.replace(/ /g, "");
-                                if (genhelper.isISBN(isbncandidate)) {
-                                    console.log("ISBN-Suche:" + isbncandidate);
-                                    $("#" + inputid).val(isbncandidate);
-                                    $("#mybookscanb1").click();
-                                    return false;
-                                }
-                            }
-                            console.log("Eingabefeld " + ltext + ":" + newtext);
-                            $("#" + inputid).val(newtext);
-                            return false;
-                        }
-                    }
-
-                    /*
-                    var forAttr = $(this).attr('for');
-                    $next = $(this).next();
-                    if($next.attr('id') == forAttr) {
-                        $(this).attr('for', forAttr + index);
-                        $next.attr('id', forAttr + index);
-                    }
-                    */
-                });
-
-
-            } else if (transcript.startsWith("button")) {
-                // alert("BUTTON:" + transcript);
-                let transcript1 = transcript.replace(/\./g, "");
-                let words = transcript1.split(/\s+/);
-                let transtext = words.slice(1).join(" ");
-                let found = false;
-                // es werden alle Button-Texte analysiert
-                // die Texte müssen immer komplett gesprochen werden
-                $('button').each(function (index, button) {
-                    console.log($(button).text());
-                    let btext = $(button).text();
-                    let btextlow = btext.toLowerCase();
-                    if (transtext === btextlow) {
-                        $(button).click();
-                        found = true;
-                        return false;
-                    }
-                });
-
-                // es kann auch input type=button,submit, geben, wäre zweiter Ansatz
-
-                // es gibt auch ICONs, die haben eigentlich keine Beschrifung
-
-            } else {
-                //alert("UNCLEAR:" + transcript);
-                // check active 
-
-                let focusedField = document.activeElement;
-                if (focusedField !== null && typeof focusedField !== "undefined" && focusedField.tagName === "TEXTAREA") {
-                    let oldtext = $(focusedField).val();
-                    $(focusedField).val(oldtext + "\n" + transcript);
-                } else {
-                    uihelper.beep();
-                    navigator.clipboard.writeText(transcript);
-                }
-            }
-        });
+        //Listen for when the user finishes talking resultListener
+        recognitionEventListener = recognition.addEventListener('result', resultListener);
 
         recognition.onstart = function (event) {
             if (typeof event !== "undefined" && typeof event.error !== "undefined" && event.error !== null) {
@@ -1006,22 +939,171 @@
         };
 
         //Restart speech recognition after user has finished talking
-        recognition.addEventListener('end', recognition.start);
-        /*
-        recognition.addEventListener('end', function () {
-            console.log("end");
-            try {
-                recognition.start();
-                console.log("neuer Start");
-            } catch (err) {
-                console.log(err.stack);
+        recognition.addEventListener('end', endListener);
+
+        $(document).on("click", ".mybookmikro", function(evt) {
+            evt.preventDefault();
+            if ($(this).hasClass("btn-info")) {
+                $(this).removeClass("btn-info");
+                $(this).addClass("btn-secondary");
+                recognition.abort();
+                recognition.removeEventListener('result', resultListener);
+                recognition.removeEventListener('end', endListener);
+                //recognition = null;
+               // recognition.stop();
+                $(this).html("Mikro an");
+            } else {
+                $(this).addClass("btn-info");
+                $(this).removeClass("btn-secondary");
+                //recognition.start();
+                $(this).html("Mikro aus");
+                mybookscan.speech();
+                $("#microphoneok").html("&#x1F3A4;");
+                $("#microphoneok").css("background-color", "green");
+                $("#microphoneok").attr("title", "Spracheingabe ist möglich");
             }
         });
-        */
-
-        // });
-
     };
+
+
+    function endListener () {
+        recognition.start();
+    }
+
+    function resultListener (e) {
+        $("input.markedactive").removeClass("markedactive");
+        //Get transcript of user speech & confidence percentage
+        let transcript = e.results[0][0].transcript.toLowerCase(); //.replace(/\s/g, ''),
+        uihelper.putMessage(transcript);
+        let confidence = (e.results[0][0].confidence * 100).toFixed(1);
+
+        //Check transcript
+        transcript = transcript.trim();
+        console.log("Erkannt (" + confidence + "):" + transcript);
+        if (transcript.startsWith("diktat")) {
+            let words = transcript.split(/\s+/);
+            let ifound = false;
+            $('label').each(function (index, label) {
+                let lwords = $(label).text().toLowerCase().split(/\s+/);
+                if (words[1] === lwords[0]) {
+                    ifound = true;
+                    let inputid = $(label).attr("for");
+                    // TODO: INPUT type text und TEXTAREA sollten noch geprüft werden
+                    $("#" + inputid).removeClass("markedactive");
+                    $("#" + inputid).addClass("markedactive");
+                    let oldtext = $("#" + inputid).val();
+                    let newtext = words.slice(2).join(" ");
+                    $("#" + inputid).val(oldtext + "\n" + newtext);
+                    $("#" + inputid).focus();
+                    return false;
+                }
+            });
+            if (ifound === false) {
+                // kein feld gefunden
+                uihelper.beep();
+                navigator.clipboard.writeText(transcript);
+            }
+        } else if (transcript.startsWith("eingabefeld")) {
+            //alert("EINGABE:" + transcript);
+            let words = transcript.split(/\s+/);
+            // es werden alle label-Texte analysiert
+            $('label').each(function (index, label) {
+                console.log($(label).text());
+                let ltext = $(label).text();
+                let wtext = ltext.toLowerCase();
+                let lwords = wtext.split(/\s+/);
+                // words gegen lwords
+                let firstinput = -1;
+                if (words[1] === lwords[0]) {
+                    // nix, wenn es zum Feld keine Eingabe gibt oder keine erkannt wurde!
+                    if (words.length <= 2) {
+                        return;
+                    }
+                    firstinput = 2;
+                    // in jedem Fall ein Treffer, Konvention solle ein Wort sei, also SKIP-Check
+                    let llen = lwords.length;
+                    for (let i = 2; i < words.length; i++) {
+                        if (i >= llen) {
+                            break;
+                        }
+                        if (words[i] === lwords[i - 1]) {
+                            // skip word, das noch zum Label gehört
+                            firstinput = i;
+                        } else {
+                            break;
+                        }
+                    }
+                    if (firstinput > -1) {
+                        let newtext = words.slice(firstinput).join(" ");
+                        // find input field
+                        let inputid = $(label).attr("for");
+                        $("#" + inputid).removeClass("markedactive");
+                        $("#" + inputid).addClass("markedactive");
+                        if (ltext.startsWith("Suche")) {
+                            // dediziert prüfen ISBN mit spezieller Aufbereitung
+                            let isbncandidate = newtext;
+                            isbncandidate = isbncandidate.replace(/-/g, "");
+                            isbncandidate = isbncandidate.replace(/ /g, "");
+                            if (genhelper.isISBN(isbncandidate)) {
+                                console.log("ISBN-Suche:" + isbncandidate);
+                                $("#" + inputid).val(isbncandidate);
+                                $("#mybookscanb1").click();
+                                return false;
+                            }
+                        }
+                        console.log("Eingabefeld " + ltext + ":" + newtext);
+                        $("#" + inputid).val(newtext);
+                        return false;
+                    }
+                }
+
+                /*
+                var forAttr = $(this).attr('for');
+                $next = $(this).next();
+                if($next.attr('id') == forAttr) {
+                    $(this).attr('for', forAttr + index);
+                    $next.attr('id', forAttr + index);
+                }
+                */
+            });
+
+        } else if (transcript.startsWith("button")) {
+            // alert("BUTTON:" + transcript);
+            let transcript1 = transcript.replace(/\./g, "");
+            let words = transcript1.split(/\s+/);
+            let transtext = words.slice(1).join(" ");
+            let found = false;
+            // es werden alle Button-Texte analysiert
+            // die Texte müssen immer komplett gesprochen werden
+            $('button').each(function (index, button) {
+                console.log($(button).text());
+                let btext = $(button).text();
+                let btextlow = btext.toLowerCase();
+                if (transtext === btextlow) {
+                    $(button).click();
+                    found = true;
+                    return false;
+                }
+            });
+
+            // es kann auch input type=button,submit, geben, wäre zweiter Ansatz
+
+            // es gibt auch ICONs, die haben eigentlich keine Beschrifung
+
+        } else {
+            //alert("UNCLEAR:" + transcript);
+            // check active 
+
+            let focusedField = document.activeElement;
+            if (focusedField !== null && typeof focusedField !== "undefined" && focusedField.tagName === "TEXTAREA") {
+                let oldtext = $(focusedField).val();
+                $(focusedField).val(oldtext + "\n" + transcript);
+            } else {
+                uihelper.beep();
+                navigator.clipboard.writeText(transcript);
+            }
+        }
+    }
 
     /**
      * standardisierte Mimik zur Integration mit App, Browser und node.js

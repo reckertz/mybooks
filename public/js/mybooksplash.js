@@ -1,6 +1,6 @@
 /*jshint esversion:6,laxbreak:true,evil:true,sub:true */
 /*global $,uihelper,sysbase,dotize,console,root,global,self,document,uientry,define */
-/*global async */
+/*global async,window,module,alert,this */
 (function () {
     "use strict";
     let mybooksplash = {};
@@ -99,7 +99,7 @@
             }));
         $("#mybooksplashc1")
             .append($("<h3/>", {
-                html: "Scanne, erfasse und kommentiere Deine Bücher mit MYBOOKS",
+                html: "Scanne, erfasse und kommentiere Deine Bücher mit MYBOOKS"
             }));
         $("#mybooksplashc1")
             .append($("<p/>", {
@@ -273,25 +273,25 @@
                     width: "400px",
                     "text-align": "left",
                     "margin-top": "10px",
-                    display: "inline-block",
+                    display: "inline-block"
                 }
             }));
         let devicename = "";
         if (navigator.userAgent.match(/Android/i)) {
             devicename = "Android";
-            devidename += " Mobile";
+            devicename += " Mobile";
         } else if (navigator.userAgent.match(/BlackBerry/i)) {
             devicename = "BlackBerry";
-            devidename += " Mobile";
+            devicename += " Mobile";
         } else if (navigator.userAgent.match(/iPhone|iPad|iPod/i)) {
             devicename = "Apple";
-            devidename += " Mobile";
+            devicename += " Mobile";
         } else if (navigator.userAgent.match(/Opera Mini/i)) {
             devicename = "Opera";
-            devidename += " Mobile";
+            devicename += " Mobile";
         } else if (navigator.userAgent.match(/IEMobile/i)) {
             devicename = "IE";
-            devidename += " Mobile";
+            devicename += " Mobile";
         } else {
 
         }
@@ -334,7 +334,9 @@
     mybooksplash.showclock = function (clockcontainer) {
         // Update the count down every 1 second
         if (typeof clockcontainer === "string") {
-            if (!clockcontainer.startsWith("#")) clockcontainer = "#" + clockcontainer;
+            if (!clockcontainer.startsWith("#")) {
+                 clockcontainer = "#" + clockcontainer;
+            }
         }
         if ($('#kliclock', clockcontainer).length === 0) {
             $(clockcontainer)

@@ -80,7 +80,7 @@
                 .append($("<span/>", {
                     id: "microphoneok",
                     css: {
-                        "margin-left": "10px"
+                        "margin": "10px"
                     }
                 }))
             );
@@ -362,7 +362,7 @@
         }
         html += "</ul>";
 
-        // TODO: height auf full screen ausrichten
+        // DONE: height auf full screen ausrichten
         var myWindow = window.open("", "Messages","top=0,width=600,height='" +  screen.height + "'");
         myWindow.document.write(html);
            

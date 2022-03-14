@@ -1,7 +1,7 @@
 /*jshint esversion:6,laxbreak:true,evil:true,sub:true */
 /*jslint browser:true,white:true */
 /*global $,window,module,document,define,root,global,self,var,this,sysbase,uihelper */
-/*global uientry,planetaryjs, */
+/*global uientry,planetaryjs,console */
 
 const genhelper = require('./public/js/genhelper.js');
 
@@ -12,9 +12,11 @@ const genhelper = require('./public/js/genhelper.js');
 
     let root = (typeof self === 'object' && self.self === self && self) || (typeof global === 'object' && global.global === global && global) || this;
     let isbn = require('node-isbn/index');
-    //let booksbytitle = require('google-books-search');
+    let booksbytitle = require('google-books-search');
     let dbhelper = require("./dbhelper.js");
     let request = require("ajax-request");
+    let superagent = require("superagent");
+
     /**
      * getbyisbn - isbn oder Titel als Vorgabe
      * erst prüfen, ob schon in der Datenbank,
@@ -139,26 +141,79 @@ const genhelper = require('./public/js/genhelper.js');
                         }
                     });
                 },
+
                 function (res, ret, cbisbn12a) {
-                    // Sonderfall: Titelsuche, wenn ISBN nicht vorgegeben war
                     if (typeof ret.book === "object" && Object.keys(ret.book).length > 0) {
                         cbisbn12a(null, res, ret);
                         return;
                     }
+                    ret.booklist = [];
+                    // Suche im original google-API
+                    superagent.get("https://www.googleapis.com/books/v1/volumes")
+                        .query({
+                            q: ret.booksearch
+                        })
+                        .end(function (err, res1) {
+                            /*
+                            if (err) {
+                                return console.log(err);
+                            }
+                            console.log(res1.body.url);
+                            console.log(res1.body.explanation);
+                            */
+                            if (err !== null) {
+                                console.log(err);
+                                ret.error = true;
+                                ret.message = err;
+                                cbisbn12a(null, res, ret);
+                                return;
+                            } else {
+                                let body = res1.body;
+                                if (typeof body === "string") {
+                                    body = JSON.parse(body);
+                                }
+                                // Extrakt übernehmen https://openlibrary.org/works/OL45883W.json
+                                ret.booklist = [];
+                                body.items.forEach(function (book, ibook) {
+                                    let title = book.volumeInfo.title;
+                                    let authors = "";
+                                    if (typeof book.volumeInfo.authors === "object" && Array.isArray(book.volumeInfo.authors) && book.volumeInfo.authors.length > 0) {
+                                        authors = book.volumeInfo.authors.join(", ");
+                                    } else {
+                                        authors = book.volumeInfo.authors;
+                                    }
+                                    let isbns = [];
+                                    if (typeof book.volumeInfo.industryIdentifiers === "object" && Array.isArray(book.volumeInfo.industryIdentifiers)) {
+                                        book.volumeInfo.industryIdentifiers.forEach(function (indid, iindid) {
+                                            if (indid.type.toLowerCase().indexOf("isbn") >= 0) {
+                                                isbns.push(indid.identifier);
+                                            }
+                                        });
+                                    }
+                                    // TODO: Duplikate prüfen 10 und 13-er ISBN
+                                    let lisbn = isbns.join(",")
+                                    let publishedDate = book.volumeInfo.publishedDate.substr(0, 4);
+                                    ret.booklist.push({
+                                        title: title,
+                                        authors: authors,
+                                        ISBN: lisbn,
+                                        publish_year: publishedDate
+                                    });
+                                });
+                                cbisbn12a(null, res, ret);
+                                return;
+                            }
+                        });
+                },
 
-                    /*
-                    booksbytitle.search(ret.booksearch, function(error, results) {
-                        if ( ! error ) {
-                            console.log(JSON.stringify(results));
-                            ret.booklist = results;
-                        } else {
-                            console.log(error);
-                            ret.booklist = [];
-                        }
-                        cbisbn12a("finish", res, ret);
-                        return; 
-                    });
-                    */
+                function (res, ret, cbisbn12b) {
+                    // Sonderfall: Titelsuche, wenn ISBN nicht vorgegeben war
+                    if (typeof ret.book === "object" && Object.keys(ret.book).length > 0 ||
+                        typeof ret.booklist === "object" && Object.keys(ret.booklist).length > 0) {
+                        cbisbn12b(null, res, ret);
+                        return;
+                    }
+
                     // https://openlibrary.org/dev/docs/api/search
                     /*
                     {
@@ -194,6 +249,7 @@ const genhelper = require('./public/js/genhelper.js');
                     Request:
                     http://openlibrary.org/search.json?q=the+lord+of+the+rings  wird genutzt
                     /search.json?q=harry%20potter&fields=*,availability&limit=1 wäre Extension der Response
+                    TODO https://openlibrary.org/works/OL45883W.json wenn OL gegeben ist!!!
                     */
                     let apisearch = encodeURIComponent(ret.booksearch);
                     let url = "https://openlibrary.org/search.json";
@@ -208,14 +264,13 @@ const genhelper = require('./public/js/genhelper.js');
                             console.log(err);
                             ret.error = true;
                             ret.message = err;
-                            cbisbn12a(null, res, ret);
+                            cbisbn12b(null, res, ret);
                             return;
                         } else {
                             if (typeof body === "string") {
                                 body = JSON.parse(body);
                             }
-                            // Extrakt übernehmen
-                            ret.booklist = [];
+                            // Extrakt übernehmen https://openlibrary.org/works/OL45883W.json
                             body.docs.forEach(function (book, ibook) {
                                 let author_name = "";
                                 if (typeof book.author_name === "string") {
@@ -245,19 +300,66 @@ const genhelper = require('./public/js/genhelper.js');
                             if (ret.booklist.length > 0) {
                                 ret.error = false;
                                 ret.message = ret.booklist.length + " Bücher gefunden";
-                                cbisbn12a(null, res, ret);
-                                return;    
+                                cbisbn12b(null, res, ret);
+                                return;
                             } else {
-                                
                                 ret.error = true;
-                                ret.message = ret.booksearch  + " Keine Bücher gefunden";
-                                cbisbn12a(null, res, ret);
+                                ret.message = ret.booksearch + " Keine Bücher gefunden";
+                                cbisbn12b(null, res, ret);
                                 return;
                             }
                         }
                     });
-
                 },
+
+                function (res, ret, cbisbn12d) {
+                    // Sonderfall: Titelsuche, wenn ISBN nicht vorgegeben war
+                    if (typeof ret.book === "object" && Object.keys(ret.book).length > 0 ||
+                    typeof ret.booklist === "object" && Object.keys(ret.booklist).length > 0) {
+                        cbisbn12d(null, res, ret);
+                        return;
+                    }
+                    let moresearch = true;
+                    if (typeof ret.booklist === "object" && Array.isArray(ret.booklist)) {
+                        ret.booklist.forEach(function (book, ibook) {
+                            let bookkeys = Object.keys(book);
+                            bookkeys.forEach(function (bookkey, ibookkey) {
+                                if (bookkey.toLowerCase().indexOf("isbn") >= 0) {
+                                    if (typeof book[bookkey] === "string" && book[bookkey].trim().length > 0) {
+                                        moresearch = false;
+                                        return false;
+                                    }
+                                    if (typeof book[bookkey] === "object" && Array.isArray(book[bookkey]) && book[bookkey].length > 0) {
+                                        moresearch = false;
+                                        return false;
+                                    }
+                                }
+                            });
+                            if (moresearch === false) {
+                                return false;
+                            }
+                        });
+                    } else {
+                        ret.booklist = [];
+                    }
+                    if (moresearch === false) {
+                        cbisbn12d(null, res, ret);
+                        return;
+                    }
+                    // Prüfen, ob die Trefferliste ISBN's enthält, wenn nicht, dann hier weiter suchen
+                    booksbytitle.search(ret.booksearch, function (error, results) {
+                        if (!error) {
+                            console.log(JSON.stringify(results));
+                            ret.booklist = ret.booklist.concat(results);
+                        } else {
+                            console.log(error);
+                        }
+                        cbisbn12d(null, res, ret);
+                        return;
+                    });
+                },
+
+
                 function (res, ret, cbisbn13) {
                     // Sichern neues Buch in die Datenbank
                     if (typeof ret.isNew !== "undefined" && ret.isNew === false) {
