@@ -52,8 +52,6 @@ const genhelper = require('./public/js/genhelper.js');
         } else if (req.body && typeof req.body.bookcomment === "string" && req.body.bookcomment.length > 0) {
             bookcomment = req.body.bookcomment;
         }
-
-
         async.waterfall(
             [
                 function (cbisbn10) {
@@ -109,37 +107,49 @@ const genhelper = require('./public/js/genhelper.js');
                 },
                 function (res, ret, cbisbn12) {
                     // Zugriff zum API
-                    if (typeof ret.isNew !== "undefined" && ret.isNew === false || genhelper.isISBN(ret.booksearch) === false) {
+                    if (typeof ret.isNew !== "undefined" && ret.isNew === false) {
                         // ISBN bereits bekannt oder Titeleingabe
                         cbisbn12(null, res, ret);
                         return;
                     }
-                    isbn.resolve(booksearch, function (err, book) {
-                        if (err) {
-                            console.log('Book ' + booksearch + ' not found', err);
-                            // err.response.status = 401
-                            let ret = {
-                                error: false,
-                                message: "Book not found",
-                                booksearch: booksearch
-                            };
-                            cbisbn12(null, res, ret);
-                            return;
-                        } else {
-                            console.log(booksearch + ' found in API');
-                            let ret = {};
-                            ret.booksearch = booksearch;
-                            ret.bookbox = bookbox;
-                            ret.bookcomment = bookcomment;
-                            ret.isNew = true;
-                            ret.ISBN = booksearch;
-                            ret.book = dbhelper.cloneObject(book);
-                            ret.error = false;
-                            ret.message = booksearch + " Book found";
-                            cbisbn12(null, res, ret);
-                            return;
-                        }
-                    });
+                    if (genhelper.isISBN(ret.booksearch) === false) {
+                        // ISBN-API braucht formal korrekte ISBN
+                        cbisbn12(null, res, ret);
+                        return;
+                    }
+                    try {
+                        isbn.resolve(booksearch, function (err, book) {
+                            if (err) {
+                                console.log('Book ' + booksearch + ' not found', err);
+                                // err.response.status = 401
+                                let ret = {
+                                    error: false,
+                                    message: "Book not found",
+                                    booksearch: booksearch
+                                };
+                                cbisbn12(null, res, ret);
+                                return;
+                            } else {
+                                console.log(booksearch + ' found in API');
+                                let ret = {};
+                                ret.booksearch = booksearch;
+                                ret.bookbox = bookbox;
+                                ret.bookcomment = bookcomment;
+                                ret.isNew = true;
+                                ret.ISBN = booksearch;
+                                ret.book = dbhelper.cloneObject(book);
+                                ret.error = false;
+                                ret.message = booksearch + " Book found";
+                                cbisbn12(null, res, ret);
+                                return;
+                            }
+                        });
+                    } catch (err) {
+                        ret.error = true;
+                        ret.message += err;
+                        cbisbn12(null, res, ret);
+                        return;
+                    }
                 },
 
                 function (res, ret, cbisbn12a) {
@@ -191,8 +201,13 @@ const genhelper = require('./public/js/genhelper.js');
                                         });
                                     }
                                     // TODO: Duplikate prüfen 10 und 13-er ISBN
-                                    let lisbn = isbns.join(",")
-                                    let publishedDate = book.volumeInfo.publishedDate.substr(0, 4);
+                                    let lisbn = isbns.join(",");
+                                    let publishedDate = "";
+                                    if (typeof book.volumeInfo.publishedDate === "string" && book.volumeInfo.publishedDate.length >= 4) {
+                                        publishedDate = book.volumeInfo.publishedDate.substr(0, 4);
+                                    } else {
+                                        //debugger;
+                                    }
                                     ret.booklist.push({
                                         title: title,
                                         authors: authors,
@@ -315,7 +330,7 @@ const genhelper = require('./public/js/genhelper.js');
                 function (res, ret, cbisbn12d) {
                     // Sonderfall: Titelsuche, wenn ISBN nicht vorgegeben war
                     if (typeof ret.book === "object" && Object.keys(ret.book).length > 0 ||
-                    typeof ret.booklist === "object" && Object.keys(ret.booklist).length > 0) {
+                        typeof ret.booklist === "object" && Object.keys(ret.booklist).length > 0) {
                         cbisbn12d(null, res, ret);
                         return;
                     }
@@ -493,6 +508,11 @@ const genhelper = require('./public/js/genhelper.js');
      * callback mit function (res, ret)
      */
     mybooksutils.putinfobyisbn = function (db, rootdir, fs, async, req, reqparm, res, cbisbn2) {
+        let username = "anonymous"; 
+        if (req.body && typeof req.body.username === "string" && req.body.username.length > 0) {
+            username = req.body.username;
+        }
+        
         let isbn = ""; // "0735619670";
         if (req.body && typeof req.body.isbn === "string" && req.body.isbn.length > 0) {
             isbn = req.body.isbn;
@@ -522,6 +542,7 @@ const genhelper = require('./public/js/genhelper.js');
             [
                 function (cbisbn20) {
                     let ret = {};
+                    ret.username = username;
                     ret.isbn = isbn;
                     ret.bookbox = bookbox;
                     ret.bookcomment = bookcomment;
@@ -538,6 +559,7 @@ const genhelper = require('./public/js/genhelper.js');
                     let updfields = {};
                     selfields.ISBN = ret.isbn;
                     insfields.ISBN = ret.isbn;
+                    updfields.username = ret.username;
                     updfields.title = ret.booktitle || "";
                     updfields.subtitle = ret.booksubtitle || "";
                     updfields.bookbox = ret.bookbox;

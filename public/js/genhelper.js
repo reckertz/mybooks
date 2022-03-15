@@ -45,10 +45,11 @@
             } else {
                 if (isbninput.substr(9, 1) === "X" || isbninput.substr(9, 1) === "0") {
                     return true;
+                } else {
+                    return false;
                 }
             }
-        }
-        if (isbninput.trim().length === 13) {
+        } else if (isbninput.trim().length === 13) {
             // dedizierte Prüfung
             let sum = 0;
             let isbnok = false;
@@ -72,6 +73,8 @@
             } else {
                 return true;
             }
+        } else {
+            return false;
         }
 
     };

@@ -295,6 +295,12 @@
         } else {
 
         }
+        let config = uihelper.getLoginData();
+        if (devicename.indexOf("Mobile") >= 0) {
+            config.mobile = true;
+        } else {
+            config.mobile = false;
+        }
         if (devicename !== "") {
             $(statuscontainerhash)
                 .append($("<span/>", {
@@ -335,7 +341,7 @@
         // Update the count down every 1 second
         if (typeof clockcontainer === "string") {
             if (!clockcontainer.startsWith("#")) {
-                 clockcontainer = "#" + clockcontainer;
+                clockcontainer = "#" + clockcontainer;
             }
         }
         if ($('#kliclock', clockcontainer).length === 0) {

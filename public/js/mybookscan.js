@@ -73,6 +73,13 @@
                 }))
             );
 
+        let config = uihelper.getLoginData();
+        if (config.mobile === true) {
+            $("#mybookscanform")
+                .append($("<div/>", {
+                    id: "mybarcodearea"
+                }));
+        }
         $("#mybookscanform")
             .append($("<div/>", {
                     class: "form-group row",
@@ -87,7 +94,7 @@
                     class: "col-sm-4 col-form-label"
                 }))
                 .append($("<div/>", {
-                        class: "col-sm-8"
+                        class: "col-sm-7"
                     })
                     .append($("<input/>", {
                         id: "myscansearch",
@@ -104,9 +111,113 @@
                         }
                     }))
                 )
-            )
+            );
+        
+        if (config.mobile === true) {
+            $("#mybookscanform")
+                .append($("<div/>", {
+                        class: "col-sm-1"
+                    })
+                    // 🔍 U+1F50D
+                    // https://github.com/serratus/quaggaJS/blob/master/example/live_w_locator.html
+                    // https://stackoverflow.com/questions/68130489/when-i-call-a-function-inside-quagga-ondetected-show-error-cannot-read-property
+                    // TODO: Beispiel integrieren, eigene Seite bzw. Tab mit Rückgabe, ausgerichtet auf Mobile
+                    .append($("<span/>", {
+                        id: "myscancamera",
+                        class: "form-control myscancamera",
+                        type: "text",
+                        "data-mini": "true",
+                        html: "&#x1F50D;",
+                        title: "ISBN-Barcode mit Kamera von Smartphone erfassen",
+                        //value: "0735619670"
+                        click: function (event) {
+                            // Kamera-Erkennung aktivieren
+                            Quagga.init({
+                                inputStream: {
+                                    name: "Live",
+                                    type: "LiveStream",
+                                    target: document.querySelector('#mybarcodearea'), // Or '#yourElement' (optional)
+                                    constraints: {
+                                        width: 440,
+                                        height: 320,
+                                        facingMode: "environment"
+                                    }
+                                },
+                                decoder: {
+                                    readers: ["ean_reader"]
+                                },
+                                debug: {
+                                    drawBoundingBox: true
+                                }
+                            }, function (err) {
+                                if (err) {
+                                    console.log(err);
+                                    uihelper.putMessage("Quagga: " + err);
+                                    return;
+                                }
+                                console.log("Initialization finished. Ready to start");
+                                uihelper.putMessage("Quagga: Initialization finished. Ready to start");
+                                Quagga.start();
+                            });
+                            // die Ausgabe des Rahmens ist zu programmieren
+                            // https://angularquestions.com/2021/06/04/green-line-arent-in-image-when-using-quagga-onprocessed-in-angular-8/
+                            /*
+                            Quagga.onProcessed(function (result) {
+                                var drawingCtx = Quagga.canvas.ctx.overlay,
+                                    drawingCanvas = Quagga.canvas.dom.overlay;
+                                if (result) {
+                                    if (result.boxes) {
+                                        drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
+                                        result.boxes.filter(function (box) {
+                                            return box !== result.box;
+                                        }).forEach(function (box) {
+                                            Quagga.ImageDebug.drawPath(box, {
+                                                x: 0,
+                                                y: 1
+                                            }, drawingCtx, {
+                                                color: "green",
+                                                lineWidth: 2
+                                            });
+                                        });
+                                    }
 
+                                    if (result.box) {
+                                        Quagga.ImageDebug.drawPath(result.box, {
+                                            x: 0,
+                                            y: 1
+                                        }, drawingCtx, {
+                                            color: "#00F",
+                                            lineWidth: 2
+                                        });
+                                    }
 
+                                    if (result.codeResult && result.codeResult.code) {
+                                        Quagga.ImageDebug.drawPath(result.line, {
+                                            x: 'x',
+                                            y: 'y'
+                                        }, drawingCtx, {
+                                            color: 'red',
+                                            lineWidth: 3
+                                        });
+                                        Quagga.onDetected((res) => {
+                                            console.log('barcode', res.codeResult.code);
+                                        });
+                                    }
+                                }
+                            });
+                            */
+                            Quagga.onDetected(function (result) {
+                                let code = result.codeResult.code;
+                                uihelper.putMessage("Quagga: " + code);
+                                Quagga.stop();
+                            });
+                        }
+                    }))
+
+                );
+        }
+
+        $("#mybookscanform")
             .append($("<div/>", {
                     class: "form-group row",
                     css: {
@@ -126,8 +237,9 @@
                     click: function (evt) {
                         evt.preventDefault();
                         uihelper.clearMessage();
-                        mybookscan.search();
-                        $("input.markedactive").removeClass("markedactive");
+                        mybookscan.search(function(ret) {
+                            $("input.markedactive").removeClass("markedactive");
+                        });
                     }
                 }))
             )
@@ -213,7 +325,7 @@
                             mybookscan.storeData(isbn);
                             $("input.markedactive").removeClass("markedactive");
                         } else {
-                            uihelper.putMessage("erst ein Buch anwählen, dann kann gespeichert werden", 3);
+                            uihelper.putMessage("Speichern: erst ein Buch anwählen, dann kann gespeichert werden", 3);
                         }
                     }
                 }))
@@ -238,8 +350,10 @@
 
 
 
-    $(document).on("change input", '.myscansearch', function (evt) {
+    $(document).on("change", '.myscansearch', function (evt) {
         evt.preventDefault();
+        evt.stopPropagation();
+        evt.stopImmediatePropagation();
         let isbninput = $(this).val();
         if (genhelper.isISBN(isbninput)) {
             $("#mybookscanb1").click();
@@ -251,12 +365,20 @@
     /**
      * search
      */
-    mybookscan.search = function () {
+    mybookscan.search = function (cbsearch) {
         // API-Aufruf booksearch
-        let booksearch = $("#myscansearch").val();
+        let booksearch = $("#myscansearch").val().trim();
+        if (booksearch.length > 1000) {
+            alert("Suchbegriff ist zu lang");
+            cbsearch({
+                error: true,
+                message: "Suchbegriff ist zu lang:" + booksearch.length
+            });
+            return;
+        }
         let jqxhr = $.ajax({
             method: "POST",
-            crossDomain: true,
+            crossDomain: false,
             url: "getbyisbn",
             data: {
                 booksearch: booksearch
@@ -281,10 +403,17 @@
                 $("#myscansearch").val("");
             }
             $("#myscansearch").focus();
+            cbsearch({
+                error: ret.error,
+                message: ret.message
+            });
             return;
         }).fail(function (err) {
-            alert(err.statusText);
             $("#myscansearch").focus();
+            cbsearch({
+                error: true,
+                message: err.responseText
+            });
             return;
         }).always(function () {
             // nope
@@ -370,8 +499,8 @@
         let bkeys = Object.keys(book);
         let i = bkeys.indexOf("ISBN");
         if (i < 0) {
-            alert("Problem");
-            bkeys.unshift(booksearch);
+            bkeys.unshift("ISBN");
+            book.ISBN = booksearch;
         }
         for (let ikey = 0; ikey < bkeys.length; ikey++) {
             let fieldname = bkeys[ikey];
@@ -452,14 +581,26 @@
         if (typeof book.authors === "string" && book.authors.startsWith("[")) {
             book.authors = JSON.parse(book.authors);
         }
-        let authors = book.authors.join(";");
+        let authors = "";
+        if (typeof book.authors === "string") {
+            authors = book.authors;    
+        } else if (typeof book.authors === "object" && Array.isArray(book.authors)) {
+            authors = book.authors.join(";");
+        }
         $("#bookhistory")
             .prepend($("<li/>", {
+                class: "mybookhistory",
+                isbn: book.ISBN,
                 html: "<b>" + book.title + " " + (book.subtitle || "") + "</b>" + " " + authors
             }));
     };
 
-
+    $(document).on("click", ".mybookhistory", function(evt) {
+        evt.preventDefault();
+        let isbn = $(this).attr("isbn");
+        $("#myscansearch").val(isbn);
+        $("#mybookscanb1").click();
+    });
     /**
      * showBookListe
      * @param {*} booksearch - Titelsuche 
@@ -755,11 +896,13 @@
         let bookbox = $("#myscanbox").val();
         let bookcomment = $("#myscancomment").val();
         uihelper.setCookie("box", bookbox);
+        let config = uihelper.getLoginData();
         let jqxhr = $.ajax({
             method: "POST",
             crossDomain: false,
             url: "putinfobyisbn",
             data: {
+                username: config.username,
                 isbn: isbn,
                 bookbox: bookbox,
                 bookcomment: bookcomment,
@@ -769,10 +912,11 @@
         }).done(function (r1, textStatus, jqXHR) {
             let ret = JSON.parse(r1);
             $("body").css("cursor", "");
-            //alert(JSON.parse(ret.book));
+            uihelper.putMessage("Gespeichert: " + activeBook.title + " Box und Kommentar", 1);
+            $("#myscansearch").focus();
             return;
         }).fail(function (err) {
-            alert(err);
+            uihelper.putMessage("Speichern: " + activeBook.title + " Box und Kommentar NICHT gespeichert:" + err.statusText, 3);
             $("#myscansearch").focus();
             return;
         }).always(function () {
@@ -837,6 +981,7 @@
             }).fail(function (err) {
                 alert(err);
                 uihelper.putMessage(err, 3);
+                debugger;
                 $("#myscansearch").focus();
                 return;
             }).always(function () {
@@ -852,7 +997,7 @@
      *       oder diktat <Feldname> <Texteingabe>  - für Anfügen an Textarea
      *       oder als Sonderfall, wenn textarea aktives Feld ist: <Texteingabe>
      *       und Button <Buttontext>
-     * @returns 
+     * @returns
      * https://codepen.io/GeorgePark/pen/gKrVJe wohl interessant
      * https://wiki.mozilla.org/Web_Speech_API_-_Speech_Recognition für NMozilla
      */
@@ -941,7 +1086,7 @@
         //Restart speech recognition after user has finished talking
         recognition.addEventListener('end', endListener);
 
-        $(document).on("click", ".mybookmikro", function(evt) {
+        $(document).on("click", ".mybookmikro", function (evt) {
             evt.preventDefault();
             if ($(this).hasClass("btn-info")) {
                 $(this).removeClass("btn-info");
@@ -950,7 +1095,7 @@
                 recognition.removeEventListener('result', resultListener);
                 recognition.removeEventListener('end', endListener);
                 //recognition = null;
-               // recognition.stop();
+                // recognition.stop();
                 $(this).html("Mikro an");
             } else {
                 $(this).addClass("btn-info");
@@ -966,11 +1111,11 @@
     };
 
 
-    function endListener () {
+    function endListener() {
         recognition.start();
     }
 
-    function resultListener (e) {
+    function resultListener(e) {
         $("input.markedactive").removeClass("markedactive");
         //Get transcript of user speech & confidence percentage
         let transcript = e.results[0][0].transcript.toLowerCase(); //.replace(/\s/g, ''),

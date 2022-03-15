@@ -308,17 +308,20 @@
      */
     let msgcount = 0;
     uihelper.putMessage = function (message, severity) {
-        console.log("MSG:" + message);
-        if (messages.length > 0 && message.trim() === messages[messages.length - 1].message.trim()) {
+        //console.log("MSG:" + message);
+        if (messages.length > 0 && message.trim() === messages[0].message.trim()) {
+            messages[0].count++;
             return;
         }
         msgcount++;
         if (typeof severity === "undefined") {
             severity = 1;
         }
+        // Zufügen vorne!!!
         messages.unshift({
             message: message,
-            severity: severity
+            severity: severity,
+            count: 1
         });
         if (messages.length > 50) {
             messages.pop();
@@ -348,6 +351,8 @@
     uihelper.showMessages = function () {
         let html = "";
         //html += '<div class="modal-dialog modal-dialog-scrollable">';
+        html += '<button  onclick="javascript:window.close();opener.window.focus();" >Close Window</button>';
+        html += "<br>";
         html += "<ul>";
         for (let imsg = 0; imsg < messages.length; imsg++) {
             html += "<li";
@@ -357,15 +362,23 @@
                 html += " style='font-weight: bold;'";
             }
             html += ">";
+            if (messages[imsg].count > 1) {
+                html += "(" + messages[imsg].count + ") ";
+            }
             html += messages[imsg].message;
             html += "</li>";
         }
         html += "</ul>";
+        
 
         // DONE: height auf full screen ausrichten
-        var myWindow = window.open("", "Messages","top=0,width=600,height='" +  screen.height + "'");
-        myWindow.document.write(html);
-           
+        
+        var myWindow = window.open("", "Messages","_blank", "top=0,width=600,height='" +  screen.height + "'");
+        //myWindow.document.write(html);
+        myWindow.document.body.innerHTML = html;
+        myWindow.document.title = "Messages";
+        myWindow.document.close();
+
         $(".newmessages").css("background-color", "grey");
         msgcount = 0;
     };
