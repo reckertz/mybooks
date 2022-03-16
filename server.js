@@ -348,7 +348,8 @@ app.get('/getsql3tablesx', function (req, res) {
 });
 
 var httpsoptions = {};
-
+// https://certbot.eff.org/instructions?ws=other&os=windows
+// https://github.com/certbot/certbot
 if (fs.existsSync("C:/Tools/mkcertinstall/mybooks.local-key.pem") &&
     fs.existsSync("C:/Tools/mkcertinstall/mybooks.local.pem")) {
     httpsoptions = {
