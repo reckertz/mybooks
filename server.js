@@ -4,6 +4,7 @@
 /*global sysbase,__dirname,window,console */
 "use strict";
 
+let compression = require('compression');
 let express = require('express');
 
 let bodyParser = require('body-parser');
@@ -97,6 +98,9 @@ async.waterfall(
 let mybooksutils = require("./mybooksutils.js");
 
 let app = express();
+
+// Compress all HTTP responses
+app.use(compression());
 
 app.use(bodyParser.json({
     limit: '150mb',
