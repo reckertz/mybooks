@@ -13,11 +13,11 @@
     let modus = "";
 
     let logindata = {};
-    
+
     /**
      * getLoginData - teilen der Logindaten
      */
-    uihelper.getLoginData = function() {
+    uihelper.getLoginData = function () {
         return logindata;
     };
 
@@ -36,7 +36,7 @@
                         float: "left"
                     }
                 })
-                
+
                 .append($("<span/>", {
                     id: "mybookusername",
                     html: "&nbsp;",
@@ -308,8 +308,11 @@
      */
     let msgcount = 0;
     uihelper.putMessage = function (message, severity) {
+        if (typeof message === "undefined") {
+            return;
+        }
         //console.log("MSG:" + message);
-        if (messages.length > 0 && message.trim() === messages[0].message.trim()) {
+        if (message.length > 0 && messages.length > 0 && message.trim() === messages[0].message.trim()) {
             messages[0].count++;
             return;
         }
@@ -330,16 +333,18 @@
         // $(".newmessages").show();
         $(".newmessages").css("background-color", "pink");
         $(".newmessages").html(msgcount);
-        if (message.length > 50) {
-            $(".navmessage").html(message.substr(0, 50) + "...");
-        } else {
-            $(".navmessage").html(message);
-        }
-        $(".navmessage").attr("title", message);
-        if (severity > 1) {
-            $(".navmessage").css("color", "red");
-        } else {
-            $(".navmessage").css("color", "blue");
+        if (message !== "no-speech") {
+            if (message.length > 50) {
+                $(".navmessage").html(message.substr(0, 50) + "...");
+            } else {
+                $(".navmessage").html(message);
+            }
+            $(".navmessage").attr("title", message);
+            if (severity > 1) {
+                $(".navmessage").css("color", "red");
+            } else {
+                $(".navmessage").css("color", "blue");
+            }
         }
     };
 
@@ -369,11 +374,11 @@
             html += "</li>";
         }
         html += "</ul>";
-        
+
 
         // DONE: height auf full screen ausrichten
-        
-        var myWindow = window.open("", "Messages","_blank", "top=0,width=600,height='" +  screen.height + "'");
+
+        var myWindow = window.open("", "Messages", "_blank", "top=0,width=600,height='" + screen.height + "'");
         //myWindow.document.write(html);
         myWindow.document.body.innerHTML = html;
         myWindow.document.title = "Messages";

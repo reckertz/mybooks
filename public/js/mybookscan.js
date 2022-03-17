@@ -1,5 +1,5 @@
 /*jshint esversion:6,laxbreak:true,evil:true,sub:true */
-/*global $,window,module,document,define,root,global,self,var,this,sysbase,uihelper */
+/*global $,window,module,document,define,root,global,self,var,this,sysbase,uihelper, */
 /*global uientry,planetaryjs,SpeechRecognition */
 (function () {
     "use strict";
@@ -331,6 +331,65 @@
                 }))
             )
 
+
+            .append($("<div/>", {
+                class: "form-group row",
+                css: {
+                    width: "100%",
+                    "margin": "10px"
+                }
+            })
+            .append($("<button/>", {
+                class: "button-primary",
+                id: "mybooksadd",
+                css: {
+                    width: "40%",
+                    "margin-left": "40%"
+                },
+                html: "Buch ohne ISBN manuell erfassen",
+                click: function (evt) {
+                    evt.preventDefault();
+                    uihelper.clearMessage();
+                    let comment = $("#myscancomment").val();
+                    let box = $("#myscanbox").val();
+                    
+                    // activeBook aufbauen, dann
+                    // neues Buch erfassen
+                    activeBook = {};
+                    activeBook.ISBN = "977" + Math.floor(100000000 + Math.random() * 900000000);
+                    // dazu muss die Prüfziffer berechnet werden, schlapp mit Loop
+                    for (let i = 0; i <= 9; i++) {
+                        let newisbn = activeBook.ISBN + "" +  i;
+                        if (genhelper.isISBN(newisbn)) {
+                            activeBook.ISBN = newisbn;
+                            break;
+                        }
+                    }
+                    activeBook.title = "";
+                    activeBook.subtitle = "Roman";
+                    activeBook.authors = "";
+                    activeBook.publishedDate =  "";
+                    activeBook.industryIdentifiers = "";
+                    activeBook.readingModes = "";
+                    activeBook.pageCount = 0;
+                    activeBook.printType = "BOOK";
+                    activeBook.maturityRating = "NOT_MATURE";
+                    activeBook.allowAnonLogging = false;
+                    activeBook.contentVersion = "";
+                    activeBook.language =  "de";
+                    activeBook.previewLink = "";
+                    activeBook.infoLink = "";
+                    activeBook.canonicalVolumeLink = "";
+                    mybookscan.showBook(activeBook.ISBN, activeBook, "#mybookscandata");
+                    $("#mybookscanb4").show();
+                    $("#mybookscanb3").hide();
+                    mybookscan.prepBook();
+                }
+            }))
+        )
+
+
+
             .append($("<div/>", {
                     class: "row",
                     css: {
@@ -401,8 +460,11 @@
 
             if (ret.error === false) {
                 $("#myscansearch").val("");
+            } else {
+                uihelper.putMessage(ret.message, 3);
             }
             $("#myscansearch").focus();
+
             cbsearch({
                 error: ret.error,
                 message: ret.message
@@ -886,13 +948,12 @@
         }
     };
 
-
-
     /**
      * storeData
      */
     mybookscan.storeData = function (isbn) {
         // API-Aufruf Erfassen Kommentar und Box
+        // activeBook.title
         let bookbox = $("#myscanbox").val();
         let bookcomment = $("#myscancomment").val();
         uihelper.setCookie("box", bookbox);
@@ -950,6 +1011,7 @@
             if (typeof oldvalue === typeof newvalue) {
                 if (oldvalue !== newvalue) {
                     updfields[id] = newvalue;
+                    activeBook[id] = newvalue;
                 }
             } else {
                 if (typeof oldvalue === "object" && Array.isArray(oldvalue) && typeof newvalue === "string") {

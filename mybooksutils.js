@@ -120,11 +120,14 @@ const genhelper = require('./public/js/genhelper.js');
                     try {
                         isbn.resolve(booksearch, function (err, book) {
                             if (err) {
-                                console.log('Book ' + booksearch + ' not found', err);
+                                let msg = booksearch + " Book not found ";
+                                msg += err.response.statusText;
+                                msg += " " + err.message;
+                                console.log(msg);
                                 // err.response.status = 401
                                 let ret = {
                                     error: false,
-                                    message: "Book not found",
+                                    message: msg,
                                     booksearch: booksearch
                                 };
                                 cbisbn12(null, res, ret);
@@ -182,6 +185,12 @@ const genhelper = require('./public/js/genhelper.js');
                                 if (typeof body === "string") {
                                     body = JSON.parse(body);
                                 }
+                                if (typeof body.totalItems !== "undefined" && body.totalItems === 0) {
+                                    ret.error = true;
+                                    ret.message = "superagent - keine Treffer";
+                                    cbisbn12a(null, res, ret);
+                                    return;
+                                }
                                 // Extrakt übernehmen https://openlibrary.org/works/OL45883W.json
                                 ret.booklist = [];
                                 body.items.forEach(function (book, ibook) {
@@ -215,6 +224,8 @@ const genhelper = require('./public/js/genhelper.js');
                                         publish_year: publishedDate
                                     });
                                 });
+                                ret.error = false;
+                                ret.message = "superagent - Treffer";
                                 cbisbn12a(null, res, ret);
                                 return;
                             }
@@ -487,6 +498,20 @@ const genhelper = require('./public/js/genhelper.js');
             ],
             function (error, res, ret) {
                 console.log(ret.booksearch + " finished");
+                if (typeof ret.book === "undefined" && (typeof ret.booklist === "undefined" || ret.booklist.length === 0)) {
+                    // Fehlermeldung final
+                    ret.error = true;
+                    ret.message = "Kein Ergebnis " + ret.message;
+                } else {
+                    if (typeof ret.book === "object" && Object.keys(ret.book).length > 0) {
+                        ret.error = false;
+                        ret.message = "Buch gefunden " +  (ret.message || "");
+                    } else if (typeof ret.booklist === "object" && Array.isArray(ret.booklist) && ret.booklist.length > 0) {
+                        // Fehlermeldung final
+                        ret.error = false;
+                        ret.message = "Bücher gefunden " + (ret.message || "");
+                    }
+                }
                 cbisbn1(res, ret);
                 return;
             });
