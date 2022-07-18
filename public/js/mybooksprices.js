@@ -213,7 +213,7 @@
         // Initialisieren bookbox-Auswahl
         let sel = "SELECT bookbox, count(bookbox) as count";
         sel += " FROM MYBOOKSINFOS";
-        sel += " WHERE bookstatus = 0";
+        sel += " WHERE bookstatus <= 1";
         sel += " GROUP BY bookbox";
         sel += " ORDER BY bookbox";
         let jqxhr = $.ajax({
@@ -237,6 +237,11 @@
             if (typeof ret.records === "undefined") {
                 alert("Keine Daten gefunden:" + textStatus);
                 uihelper.putMessage("Keine Daten gefunden", 3);
+                $("#mybookspricesbox")
+                .append($("<option/>", {
+                    value: "",
+                    html: "Alle"
+                }));
                 return;
             }
             // verarbeiten

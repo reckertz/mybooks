@@ -33,13 +33,16 @@ if (systemdata.NODE_ENV === "production") {
         ca: fs.readFileSync("/etc/letsencrypt/live/eck2021.selfhost.co/chain.pem", "utf8")
     };
 } else {
+    /*
     if (fs.existsSync("C:/Tools/mkcert/example.com+5-key.pem")) {
         httpsoptions = {
             key: fs.readFileSync("C:/Tools/mkcert/example.com+5-key.pem", "utf8"),
             cert: fs.readFileSync("C:/Tools/mkcert/example.com+5.pem", "utf8")
             //ca: fs.readFileSync("C:\OpenSSL-Win64\bin\PEM\chain.pem", "utf8")
         };
-    } else if (fs.existsSync("C:/Tools/mkcertinstall/mybooks.local-key.pem")) {
+    } else 
+    */
+    if (fs.existsSync("C:/Tools/mkcertinstall/mybooks.local-key.pem")) {
         httpsoptions = {
             key: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local-key.pem", "utf8"),
             cert: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local.pem", "utf8")
