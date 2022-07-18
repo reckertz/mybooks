@@ -22,6 +22,33 @@ let sqlite3 = require('sqlite3');
 let db = null;
 let dbfilename = "";
 
+var systemdata = {};
+systemdata.NODE_ENV = process.env.NODE_ENV;
+
+var httpsoptions = {};
+if (systemdata.NODE_ENV === "production") {
+    httpsoptions = {
+        key: fs.readFileSync("/etc/letsencrypt/live/eck2021.selfhost.co/privkey.pem", "utf8"),
+        cert: fs.readFileSync("/etc/letsencrypt/live/eck2021.selfhost.co/cert.pem", "utf8"),
+        ca: fs.readFileSync("/etc/letsencrypt/live/eck2021.selfhost.co/chain.pem", "utf8")
+    };
+} else {
+    if (fs.existsSync("C:/Tools/mkcert/example.com+5-key.pem")) {
+        httpsoptions = {
+            key: fs.readFileSync("C:/Tools/mkcert/example.com+5-key.pem", "utf8"),
+            cert: fs.readFileSync("C:/Tools/mkcert/example.com+5.pem", "utf8")
+            //ca: fs.readFileSync("C:\OpenSSL-Win64\bin\PEM\chain.pem", "utf8")
+        };
+    } else if (fs.existsSync("C:/Tools/mkcertinstall/mybooks.local-key.pem")) {
+        httpsoptions = {
+            key: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local-key.pem", "utf8"),
+            cert: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local.pem", "utf8")
+            //ca: fs.readFileSync("C:\OpenSSL-Win64\bin\PEM\chain.pem", "utf8")
+        };
+    }
+}
+
+
 async.waterfall(
     [
         function (cb101) {
@@ -144,6 +171,100 @@ app.post('/getbyisbn', function (req, res) {
     }
     let rootdir = __dirname;
     mybooksutils.getbyisbn(db, rootdir, fs, async, req, null, res, function (res, ret) {
+        // in ret liegen error, message und record
+        let smsg = JSON.stringify(ret);
+        res.writeHead(200, {
+            'Content-Type': 'application/text',
+            "Access-Control-Allow-Origin": "*"
+        });
+        res.end(smsg);
+        return;
+    });
+});
+
+/**
+ * get100 - 100 Buchdaten mit boxsearch holen, Markierung beachten
+ */
+ app.post('/get100', function (req, res) {
+    let timeout = 100 * 60 * 1000; // hier: gesetzter Default
+    if (req.query && typeof req.query.timeout !== "undefined" && req.query.timeout.length > 0) {
+        timeout = req.query.timeout;
+        req.setTimeout(parseInt(timeout));
+    }
+    let rootdir = __dirname;
+    mybooksutils.get100(db, rootdir, fs, async, req, null, res, function (res, ret) {
+        // in ret liegen error, message und record
+        let smsg = JSON.stringify(ret);
+        res.writeHead(200, {
+            'Content-Type': 'application/text',
+            "Access-Control-Allow-Origin": "*"
+        });
+        res.end(smsg);
+        return;
+    });
+});
+
+
+/**
+ * set100 - 100 Buchdaten Markieren gemäß ISBN und bookbox
+ */
+ app.post('/set100', function (req, res) {
+    let timeout = 100 * 60 * 1000; // hier: gesetzter Default
+    if (req.query && typeof req.query.timeout !== "undefined" && req.query.timeout.length > 0) {
+        timeout = req.query.timeout;
+        req.setTimeout(parseInt(timeout));
+    }
+    let rootdir = __dirname;
+    mybooksutils.set100(db, rootdir, fs, async, req, null, res, function (res, ret) {
+        // in ret liegen error, message und record
+        let smsg = JSON.stringify(ret);
+        res.writeHead(200, {
+            'Content-Type': 'application/text',
+            "Access-Control-Allow-Origin": "*"
+        });
+        res.end(smsg);
+        return;
+    });
+});
+
+
+
+/**
+ * setofferings - Preisangebote zu ISBN speichern
+ * results kommt als Array mit [ISBN], price
+ */
+ app.post('/setofferings', function (req, res) {
+    let timeout = 100 * 60 * 1000; // hier: gesetzter Default
+    if (req.body && typeof req.body.timeout !== "undefined" && req.body.timeout.length > 0) {
+        timeout = req.body.timeout;
+        req.setTimeout(parseInt(timeout));
+    }
+    let rootdir = __dirname;
+    mybooksutils.setofferings(db, rootdir, fs, async, req, null, res, function (res, ret) {
+        // in ret liegen error, message und record
+        let smsg = JSON.stringify(ret);
+        res.writeHead(200, {
+            'Content-Type': 'application/text',
+            "Access-Control-Allow-Origin": "*"
+        });
+        res.end(smsg);
+        return;
+    });
+});
+
+
+/**
+ * setofferings - Preisangebote zu ISBN speichern
+ * results kommt als Array mit [ISBN], price
+ */
+ app.get('/initofferings', function (req, res) {
+    let timeout = 100 * 60 * 1000; // hier: gesetzter Default
+    if (req.body && typeof req.body.timeout !== "undefined" && req.body.timeout.length > 0) {
+        timeout = req.body.timeout;
+        req.setTimeout(parseInt(timeout));
+    }
+    let rootdir = __dirname;
+    mybooksutils.initofferings(db, rootdir, fs, async, req, null, res, function (res, ret) {
         // in ret liegen error, message und record
         let smsg = JSON.stringify(ret);
         res.writeHead(200, {
@@ -347,17 +468,7 @@ app.get('/getsql3tablesx', function (req, res) {
     }
 });
 
-var httpsoptions = {};
-// https://certbot.eff.org/instructions?ws=other&os=windows
-// https://github.com/certbot/certbot
-if (fs.existsSync("C:/Tools/mkcertinstall/mybooks.local-key.pem") &&
-    fs.existsSync("C:/Tools/mkcertinstall/mybooks.local.pem")) {
-    httpsoptions = {
-        key: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local-key.pem", "utf8"),
-        cert: fs.readFileSync("C:/Tools/mkcertinstall/mybooks.local.pem", "utf8")
-        //ca: fs.readFileSync("C:\OpenSSL-Win64\bin\PEM\chain.pem", "utf8")
-    };
-}
+
 
 let httpsServer;
 

@@ -440,7 +440,7 @@
             for (var property in format) {
                 if (format.hasOwnProperty(property)) {
                     attrs = [];
-                    var cont = "";
+                     cont = "";
                     if (typeof formatattributes === "undefined") formatattributes = {};
                     if (typeof formatattributes.onlyFormat !== "undefined" && formatattributes.onlyFormat === true && typeof formatattributes[property] === "undefined") {
                         continue;
@@ -546,7 +546,7 @@
             if (typeof rowid === "string" && rowid !== null && rowid.length > 0) {
                 rowattr += " rowid='" + rowid + "'";
             } else if (typeof rowid === "object" && Object.keys(rowid).length > 0) {
-                for (var property in rowid) {
+                for (let property in rowid) {
                     if (rowid.hasOwnProperty(property)) {
                         // do stuff
                         var value = rowid[property];

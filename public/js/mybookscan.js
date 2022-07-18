@@ -225,6 +225,7 @@
                         "margin": "10px"
                     }
                 })
+
                 .append($("<button/>", {
                     class: "button-primary",
                     id: "mybookscanb1",
@@ -242,6 +243,27 @@
                         });
                     }
                 }))
+
+
+                .append($("<button/>", {
+                    class: "button-primary",
+                    id: "mybookscanb1",
+                    title: "Diktieren 'Button Suchen' oder Click",
+                    css: {
+                        width: "40%",
+                        "margin-left": "40%"
+                    },
+                    html: "100 Suchen",
+                    click: function (evt) {
+                        evt.preventDefault();
+                        uihelper.clearMessage();
+                        mybookscan.search100(function(ret) {
+                            $("input.markedactive").removeClass("markedactive");
+                        });
+                    }
+                }))
+
+
             )
 
             .append($("<div/>", {
@@ -473,6 +495,69 @@
         }).fail(function (err) {
             $("#myscansearch").focus();
             cbsearch({
+                error: true,
+                message: err.responseText
+            });
+            return;
+        }).always(function () {
+            // nope
+        });
+    };
+
+
+    /**
+     * search100 - 100 Bücher suchen mit ISBN, sortiert nach ISBN
+     * und dann markiert in der Datenbank
+     */
+     mybookscan.search100 = function (cbsearch100) {
+        // API-Aufruf booksearch
+        let booksearch = $("#myscansearch").val().trim();
+        if (booksearch.length > 1000) {
+            alert("Suchbegriff ist zu lang");
+            cbsearch100({
+                error: true,
+                message: "Suchbegriff ist zu lang:" + booksearch.length
+            });
+            return;
+        }
+        let jqxhr = $.ajax({
+            method: "POST",
+            crossDomain: false,
+            url: "get100",
+            data: {
+                booksearch: booksearch
+            }
+        }).done(function (r1, textStatus, jqXHR) {
+            let ret = JSON.parse(r1);
+            $("body").css("cursor", "");
+            //alert(JSON.parse(ret.book));
+            let bookbox = $("#myscanbox").val();
+            uihelper.setCookie("box", bookbox);
+            activeBook = {};
+            if (typeof ret.book === "object" && Object.keys(ret.book).length > 0) {
+                activeBook = ret.book;
+                mybookscan.showBook(ret.booksearch, ret.book, "#mybookscandata");
+            } else if (typeof ret.booklist === "object" && Array.isArray(ret.booklist) && ret.booklist.length > 0) {
+                mybookscan.showBookListe(ret.booksearch, ret.booklist, "#mybookscandata");
+            } else {
+                // hier wurde wirklich nichts gefunden
+            }
+
+            if (ret.error === false) {
+                $("#myscansearch").val("");
+            } else {
+                uihelper.putMessage(ret.message, 3);
+            }
+            $("#myscansearch").focus();
+
+            cbsearch100({
+                error: ret.error,
+                message: ret.message
+            });
+            return;
+        }).fail(function (err) {
+            $("#myscansearch").focus();
+            cbsearch100({
                 error: true,
                 message: err.responseText
             });

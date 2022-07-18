@@ -232,7 +232,7 @@
         } else {
             $("#mybooksplashc1")
                 .append($("<button/>", {
-                    text: "Weiter",
+                    text: "zum Scannen",  // weiter
                     css: {
                         "font-size": "30px",
                         "font-weight": "bold",
@@ -253,6 +253,31 @@
                         });
                     }
                 }));
+
+                $("#mybooksplashc1")
+                .append($("<button/>", {
+                    text: "zur Preisauskunft (rebuy)",  
+                    css: {
+                        "font-size": "30px",
+                        "font-weight": "bold",
+                        margin: "5px"
+                    },
+                    click: function (evt) {
+                        evt.preventDefault();
+                        let now = new Date();
+                        userdata = uihelper.getLoginData();
+                        userdata.username = logindata.username;
+                        userdata.lastcall = now.toISOString();
+
+                        uihelper.setCookie("user", JSON.stringify(userdata));
+                        uihelper.navigateTo("mybooksprices.show", {
+                            cb6000: function (err) {
+
+                            }
+                        });
+                    }
+                }));
+
         }
 
 

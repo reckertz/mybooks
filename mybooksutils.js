@@ -505,7 +505,7 @@ const genhelper = require('./public/js/genhelper.js');
                 } else {
                     if (typeof ret.book === "object" && Object.keys(ret.book).length > 0) {
                         ret.error = false;
-                        ret.message = "Buch gefunden " +  (ret.message || "");
+                        ret.message = "Buch gefunden " + (ret.message || "");
                     } else if (typeof ret.booklist === "object" && Array.isArray(ret.booklist) && ret.booklist.length > 0) {
                         // Fehlermeldung final
                         ret.error = false;
@@ -515,8 +515,360 @@ const genhelper = require('./public/js/genhelper.js');
                 cbisbn1(res, ret);
                 return;
             });
+    };
+
+
+    /**
+     * get100 - boxsearch als Vorgabe für 100 Bücher
+     * Markierung beachten in MYBOOKSINFOS bookstatus <= 1
+     * @param {*} rootdir 
+     * @param {*} fs 
+     * @param {*} async 
+     * @param {*} req 
+     * @param {*} reqparm
+     * @param {*} res 
+     * @param {*} cbisbn1 
+     * callback mit function (res, ret) - returns ret.booklist !!!
+     */
+    mybooksutils.get100 = function (db, rootdir, fs, async, req, reqparm, res, cbbox1) {
+        let boxsearch = ""; // "0735619670";
+        if (req.body && typeof req.body.boxsearch === "string" && req.body.boxsearch.length > 0) {
+            boxsearch = req.body.boxsearch;
+        }
+
+        async.waterfall(
+            [
+                function (cbbox10) {
+                    let ret = {};
+                    ret.boxsearch = boxsearch;
+                    cbbox10(null, res, ret);
+                    return;
+                },
+
+                function (res, ret, cbbox11) {
+                    ret.boxsearch = boxsearch;
+                    let reqparm = {};
+                    reqparm.sel = "SELECT * FROM MYBOOKSINFOS";
+                    reqparm.sel += " WHERE bookstatus <= 1";
+                    if (typeof ret.boxsearch === "string" && ret.boxsearch.trim().length > 0) {
+                        //reqparm.sel += " WHERE lower(bookbox) LIKE '%" + ret.boxsearch.toLowerCase() + "%'";
+                        reqparm.sel += " AND bookbox = '" + ret.boxsearch + "'";
+                    }
+                    reqparm.sel += " ORDER BY bookbox, ISBN";
+                    reqparm.limit = 100;
+                    reqparm.skip = 0;
+                    // TODO: Selektion auf den Status bookstatus - später, wenn die Felder angelegt sind
+                    dbhelper.getallsqlrecords(db, async, null, reqparm, res, function (res, ret) {
+                        cbbox11(null, res, ret);
+                        return;
+                    });
+                }
+            ],
+            function (error, res, ret) {
+                console.log(ret.booksearch + " finished");
+                if (typeof ret.booklist === "object" && Array.isArray(ret.booklist) && ret.booklist.length > 0) {
+                    // Fehlermeldung final
+                    ret.error = false;
+                    ret.message = "Bücher gefunden " + (ret.message || "");
+                }
+                cbbox1(res, ret);
+                return;
+            });
+    };
+
+
+    /**
+     * set100 - Bücker markieren auf bookstatus 1
+     * gemäß ISBN und bookbox
+     * @param {*} rootdir 
+     * @param {*} fs 
+     * @param {*} async 
+     * @param {*} req 
+     * @param {*} reqparm
+     * @param {*} res 
+     * @param {*} cbisbn1 
+     * callback mit function (res, ret) - returns ret.booklist !!!
+     */
+    mybooksutils.set100 = function (db, rootdir, fs, async, req, reqparm, res, cbbox3) {
+        let books100 = ""; // "0735619670";
+        if (req.body && typeof req.body.books100 === "string" && req.body.books100.length > 0) {
+            books100 = JSON.parse(req.body.books100);
+        } else if (req.body && typeof req.body.books100 === "object" && req.body.books100.length > 0) {
+            books100 = req.body.books100;
+        }
+        async.waterfall(
+            [
+                function (cbbox30) {
+                    req.ret = {};
+                    let ret = req.ret;
+                    ret.books100 = books100;
+                    cbbox30(null, res, ret);
+                    return;
+                },
+                function (res, ret, cbbox31) {
+                    async.eachSeries(ret.books100, function (book, nextbook) {
+                        let ISBN = book.ISBN;
+                        let bookbox = book.bookbox;
+
+                        let selfields = {};
+                        let insfields = {};
+                        let updfields = {};
+                        selfields.ISBN = ISBN;
+                        selfields.bookbox = bookbox;
+                        insfields.ISBN = ISBN;
+                        insfields.bookbox = bookbox;
+                        updfields.bookstatus = 1;
+                        updfields.bookprice = "";
+                        updfields.bookpriceisoday = "";
+                        updfields.bookreseller = "rebuy";
+                        let reqparm = {};
+                        reqparm.selfields = dbhelper.cloneObject(selfields);
+                        reqparm.insfields = dbhelper.cloneObject(insfields);
+                        reqparm.updfields = dbhelper.cloneObject(updfields);
+                        reqparm.table = "MYBOOKSINFOS";
+                        console.log("MYBOOKSINFOS-status-UPD-started " + book.ISBN);
+                        dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
+                            console.log("MYBOOKSINFOS-status-UPD-ended " + book.ISBN + " " + book.bookbox);
+                            ret.error = ret1.error;
+                            ret.message += " " + book.ISBN + " " + ret1.error;
+                            nextbook(null, res, ret);
+                            return;
+                        });
+                    },
+                     function(err) {
+                        cbbox31 (null, res, ret);
+                        return;
+                    });
+                }
+            ],
+            function (error, res, ret) {
+                cbbox3(res, ret);
+                return;    
+            });
 
     };
+
+
+
+
+    /**
+     * setofferings
+     * @param {*} db 
+     * @param {*} rootdir 
+     * @param {*} fs 
+     * @param {*} async 
+     * @param {*} req 
+     * @param {*} reqparm 
+     * @param {*} res 
+     * @param {*} cboff1 
+     * return res, ret
+     * 
+     */
+    mybooksutils.setofferings = function (db, rootdir, fs, async, req, reqparm, res, cboff1) {
+        async.waterfall([
+                function (cboff10) {
+                    let results = req.body.results;
+                    if (typeof results === "string") {
+                        results = JSON.parse(results);
+                    }
+                    req.ret = {};
+                    let ret = req.ret;
+                    ret.error = false;
+                    ret.message = "";
+                    ret.results = results;
+                    cboff10(null, res, ret);
+                    return;
+                },
+                function (res, ret, cboff10a) {
+                    // Laden alle ISBN's, die in MYBOOKSINFOS vorhanden sind nach ret.ISBNs[i]
+                    let reqparm = {};
+                    ret.ISBNs = [];
+                    ret.bookboxes = [];
+                    reqparm.sel = "SELECT ISBN, bookbox, bookstatus, bookprice FROM MYBOOKSINFOS";
+                    reqparm.sel += " WHERE bookstatus <= 1";
+                    reqparm.sel += " ORDER BY ISBN";
+                    // TODO: bookstatus = 1 später bzw. >=1 noch zu durchdenken
+                    dbhelper.getallsqlrecords(db, async, null, reqparm, res, function (res, ret1) {
+                        if (ret1.error === false && typeof ret1.records === "object" && Array.isArray(ret1.records) && ret1.records.length > 0) {
+                            ret1.records.forEach(function (record, irec) {
+                                ret.ISBNs.push(record.ISBN);
+                                ret.bookboxes.push(record.bookbox);
+                            });
+                        }
+                        cboff10a(null, res, ret);
+                        return;
+                    });
+                },
+                function (res, ret, cboff11) {
+                    if (typeof ret.results === "object" && ret.results !== null) {
+                        //for (let i = 0; i < results.length; i++) {
+                        async.eachSeries(ret.results, function (result, nextresult) {
+                                console.log(result);
+                                // hier können die Daten fortgeschrieben werden
+                                // {ISBN: 'Bücher;EAN/ISBN: 3839212022, 9783839212028;', price: '0,22 €;'}
+                                let ISBNtext = result.ISBN;
+                                let pricetext = result.price;
+                                // parsen
+                                let re1 = /[A-Za-z0-9]+/g;
+                                let found1 = ISBNtext.match(re1);
+                                //[0-9]+,[0-9]+
+                                if (pricetext === "nobuy" || pricetext === "unknown" ) {
+                                    ret.price = pricetext;
+                                    ret.bookstatus = 3;
+                                } else {
+                                    let re2 = /[0-9]+,[0-9]+/g;
+                                    let found2 = pricetext.match(re2);
+                                    ret.price = found2[0];
+                                    ret.bookstatus = 2;
+                                }
+                                ret.ISBN = "";
+                                ret.bookbox = "";
+                                for (let j = 0; j < found1.length; j++) {
+                                    if (genhelper.isISBN(found1[j]) === true) {
+                                        // check gegen ret.ISBNs
+                                        let ISBNindex = ret.ISBNs.indexOf(found1[j]);
+                                        if (ISBNindex >= 0) {
+                                            ret.ISBN = found1[j].trim();
+                                            ret.bookbox = ret.bookboxes[ISBNindex];
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (ret.ISBN.length > 0) {
+                                    // Update auf BOOKSINFOS - mit "richtiger ISBN"
+                                    ret.message += ret.ISBN + ",";
+                                    let selfields = {};
+                                    let insfields = {};
+                                    let updfields = {};
+                                    selfields.ISBN = ret.ISBN;
+                                    selfields.bookbox = ret.bookbox;
+                                    insfields.ISBN = ret.ISBN;
+                                    insfields.bookbox = ret.bookbox;
+                                    updfields.bookprice = ret.price;
+                                    updfields.bookstatus = ret.bookstatus;
+                                    updfields.bookpriceisoday = new Date().toISOString().substr(0, 10);
+                                    updfields.bookreseller = "rebuy";
+                                    let reqparm = {};
+                                    reqparm.selfields = dbhelper.cloneObject(selfields);
+                                    reqparm.insfields = dbhelper.cloneObject(insfields);
+                                    reqparm.updfields = dbhelper.cloneObject(updfields);
+                                    reqparm.table = "MYBOOKSINFOS";
+                                    console.log("MYBOOKSINFOS-price-UPD-started " + ret.ISBN);
+                                    dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
+                                        console.log("MYBOOKSINFOS-price-UPD-ended " + ret.ISBN +  " " + ret1.message);
+                                        ret.error = ret1.error;
+                                        ret.message += " " + ret1.message;
+                                        nextresult(null, res, ret);
+                                        return;
+                                    });
+                                } else {
+                                    ret.message += " " + ret.ISBN + " not found with " + ret.bookbox;
+                                    nextresult(null, res, ret);
+                                    return;
+                                }
+                            },
+                            function (error) {
+                                if (error === null) {
+                                    cboff11(null, res, ret);
+                                    return;
+                                } else {
+                                    let ret = {
+                                        error: false,
+                                        message: error
+                                    };
+                                    cboff11(null, res, ret);
+                                    return;
+                                }
+                            });
+                    } else {
+                        let ret = {
+                            error: true,
+                            message: "nichts gefunden"
+                        };
+                        cboff11(null, res, ret);
+                        return;
+                    }
+                }
+            ],
+            function (error, res, ret) {
+                cboff1(res, ret);
+                return;
+            });
+    };
+
+
+    /**
+     * initofferings - Initalisieren alle MYBOOKSINFOS für offerings!!!
+     * @param {*} db 
+     * @param {*} rootdir 
+     * @param {*} fs 
+     * @param {*} async 
+     * @param {*} req 
+     * @param {*} reqparm 
+     * @param {*} res 
+     * @param {*} cboff1 
+     * return res, ret
+     * 
+     */
+    mybooksutils.initofferings = function (db, rootdir, fs, async, req, reqparm, res, cboff2) {
+
+        async.waterfall([
+                function (cboff20) {
+                    req.ret = {};
+                    let ret = req.ret;
+                    cboff20(null, res, ret);
+                    return;
+                },
+                function (res, ret, cboff21) {
+                    let reqparm = {};
+                    reqparm.sel = "SELECT * FROM MYBOOKSINFOS";
+                    reqparm.sel += " ORDER BY bookbox, ISBN";
+                    dbhelper.getallsqlrecords(db, async, null, reqparm, res, function (res, ret1) {
+                        ret.records = ret1.records;
+                        cboff21(null, res, ret);
+                        return;
+                    });
+                },
+                function (res, ret, cboff22) {
+                    async.eachSeries(ret.records, function (record, nextrecord) {
+                            let selfields = {};
+                            let insfields = {};
+                            let updfields = {};
+                            selfields.ISBN = record.ISBN;
+                            selfields.bookbox = record.bookbox;
+                            insfields.ISBN = record.ISBN;
+                            insfields.bookbox = record.bookbox;
+
+                            updfields.bookprice = 0;
+                            updfields.bookstatus = 0;
+                            updfields.bookpriceisoday = "";
+                            updfields.bookreseller = "";
+                            let reqparm = {};
+                            reqparm.selfields = dbhelper.cloneObject(selfields);
+                            reqparm.insfields = dbhelper.cloneObject(insfields);
+                            reqparm.updfields = dbhelper.cloneObject(updfields);
+                            reqparm.table = "MYBOOKSINFOS";
+                            dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
+                                ret.error = ret1.error;
+                                ret.message += " " + ret1.message;
+                                nextrecord(null, res, ret);
+                                return;
+                            });
+                        },
+                        function (error) {
+                            cboff22(null, res, ret);
+                            return;
+                        });
+                }
+            ],
+            function (error, res, ret) {
+                cboff2(res, ret);
+                return;
+            });
+    };
+
+
+
 
 
     /**
@@ -533,11 +885,11 @@ const genhelper = require('./public/js/genhelper.js');
      * callback mit function (res, ret)
      */
     mybooksutils.putinfobyisbn = function (db, rootdir, fs, async, req, reqparm, res, cbisbn2) {
-        let username = "anonymous"; 
+        let username = "anonymous";
         if (req.body && typeof req.body.username === "string" && req.body.username.length > 0) {
             username = req.body.username;
         }
-        
+
         let isbn = ""; // "0735619670";
         if (req.body && typeof req.body.isbn === "string" && req.body.isbn.length > 0) {
             isbn = req.body.isbn;
@@ -589,6 +941,10 @@ const genhelper = require('./public/js/genhelper.js');
                     updfields.subtitle = ret.booksubtitle || "";
                     updfields.bookbox = ret.bookbox;
                     updfields.bookcomment = ret.bookcomment;
+                    updfields.bookprice = "";
+                    updfields.bookstatus = 0;
+                    updfields.bookpriceday = "";
+                    updfields.bookreseller = "";
                     let reqparm = {};
                     reqparm.selfields = dbhelper.cloneObject(selfields);
                     reqparm.insfields = dbhelper.cloneObject(insfields);

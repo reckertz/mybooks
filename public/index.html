@@ -33,6 +33,7 @@
 
     <script src="js/mybooksplash.js"></script>
     <script src="js/mybookscan.js"></script>
+    <script src="js/mybooksprices.js"></script>
     <!--script src="js/mybooksearch.js"></script-->
     <script src="js/uihelper.js"></script>
     <script src="js/sqlutils.js"></script>
@@ -129,6 +130,12 @@
                 });
             } else if (typeof target === "string" && target.length > 0 && target === "mybookscan") {
                 uihelper.navigateTo("mybookscan.show", {
+                    cb6000: function (err) {
+
+                    }
+                });
+            } else if (typeof target === "string" && target.length > 0 && target === "mybooksprices") {
+                uihelper.navigateTo("mybooksprices.show", {
                     cb6000: function (err) {
 
                     }
