@@ -607,43 +607,43 @@ const genhelper = require('./public/js/genhelper.js');
                 },
                 function (res, ret, cbbox31) {
                     async.eachSeries(ret.books100, function (book, nextbook) {
-                        let ISBN = book.ISBN;
-                        let bookbox = book.bookbox;
+                            let ISBN = book.ISBN;
+                            let bookbox = book.bookbox;
 
-                        let selfields = {};
-                        let insfields = {};
-                        let updfields = {};
-                        selfields.ISBN = ISBN;
-                        selfields.bookbox = bookbox;
-                        insfields.ISBN = ISBN;
-                        insfields.bookbox = bookbox;
-                        updfields.bookstatus = 1;
-                        updfields.bookprice = "";
-                        updfields.bookpriceisoday = "";
-                        updfields.bookreseller = "rebuy";
-                        let reqparm = {};
-                        reqparm.selfields = dbhelper.cloneObject(selfields);
-                        reqparm.insfields = dbhelper.cloneObject(insfields);
-                        reqparm.updfields = dbhelper.cloneObject(updfields);
-                        reqparm.table = "MYBOOKSINFOS";
-                        console.log("MYBOOKSINFOS-status-UPD-started " + book.ISBN);
-                        dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
-                            console.log("MYBOOKSINFOS-status-UPD-ended " + book.ISBN + " " + book.bookbox);
-                            ret.error = ret1.error;
-                            ret.message += " " + book.ISBN + " " + ret1.error;
-                            nextbook(null, res, ret);
+                            let selfields = {};
+                            let insfields = {};
+                            let updfields = {};
+                            selfields.ISBN = ISBN;
+                            selfields.bookbox = bookbox;
+                            insfields.ISBN = ISBN;
+                            insfields.bookbox = bookbox;
+                            updfields.bookstatus = 1;
+                            updfields.bookprice = "";
+                            updfields.bookpriceisoday = "";
+                            updfields.bookreseller = "rebuy";
+                            let reqparm = {};
+                            reqparm.selfields = dbhelper.cloneObject(selfields);
+                            reqparm.insfields = dbhelper.cloneObject(insfields);
+                            reqparm.updfields = dbhelper.cloneObject(updfields);
+                            reqparm.table = "MYBOOKSINFOS";
+                            console.log("MYBOOKSINFOS-status-UPD-started " + book.ISBN);
+                            dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
+                                console.log("MYBOOKSINFOS-status-UPD-ended " + book.ISBN + " " + book.bookbox);
+                                ret.error = ret1.error;
+                                ret.message += " " + book.ISBN + " " + ret1.error;
+                                nextbook(null, res, ret);
+                                return;
+                            });
+                        },
+                        function (err) {
+                            cbbox31(null, res, ret);
                             return;
                         });
-                    },
-                     function(err) {
-                        cbbox31 (null, res, ret);
-                        return;
-                    });
                 }
             ],
             function (error, res, ret) {
                 cbbox3(res, ret);
-                return;    
+                return;
             });
 
     };
@@ -702,67 +702,79 @@ const genhelper = require('./public/js/genhelper.js');
                 function (res, ret, cboff11) {
                     if (typeof ret.results === "object" && ret.results !== null) {
                         //for (let i = 0; i < results.length; i++) {
+                        let msg = "";
                         async.eachSeries(ret.results, function (result, nextresult) {
                                 console.log(result);
-                                // hier können die Daten fortgeschrieben werden
-                                // {ISBN: 'Bücher;EAN/ISBN: 3839212022, 9783839212028;', price: '0,22 €;'}
-                                let ISBNtext = result.ISBN;
-                                let pricetext = result.price;
-                                // parsen
-                                let re1 = /[A-Za-z0-9]+/g;
-                                let found1 = ISBNtext.match(re1);
-                                //[0-9]+,[0-9]+
-                                if (pricetext === "nobuy" || pricetext === "unknown" ) {
-                                    ret.price = pricetext;
-                                    ret.bookstatus = 3;
-                                } else {
+                                //innertext: '0,00 €\nZERO - Sie wissen, was du tust - Marc Elsberg [Gebundene Ausgabe]\nBücher\nEAN/ISBN: 3764504927, 9783764504922'
+                                //type: 'nobuy
+                                let ISBN = "";
+                                let price = "";
+                                if (typeof result === "object" &&
+                                    typeof result.innertext === "string" &&
+                                    result.innertext.length > 0 &&
+                                    typeof result.type === "string") {
                                     let re2 = /[0-9]+,[0-9]+/g;
-                                    let found2 = pricetext.match(re2);
-                                    ret.price = found2[0];
-                                    ret.bookstatus = 2;
-                                }
-                                ret.ISBN = "";
-                                ret.bookbox = "";
-                                for (let j = 0; j < found1.length; j++) {
-                                    if (genhelper.isISBN(found1[j]) === true) {
-                                        // check gegen ret.ISBNs
-                                        let ISBNindex = ret.ISBNs.indexOf(found1[j]);
-                                        if (ISBNindex >= 0) {
-                                            ret.ISBN = found1[j].trim();
-                                            ret.bookbox = ret.bookboxes[ISBNindex];
-                                            break;
+                                    let found2 = result.innertext.match(re2);
+                                    if (found2 !== null && typeof found2 !== "undefined" && typeof found2[0] !== "undefined") {
+                                        price = found2[0];
+                                    }
+                                    let re1 = /[A-Za-z0-9]+/g;
+                                    let found1 = result.innertext.match(re1);
+                                    let ISBNs = [];
+                                    for (let j = 0; j < found1.length; j++) {
+                                        if (genhelper.isISBN(found1[j]) === true) {
+                                            // check gegen ret.ISBNs
+                                            let ISBNindex = ret.ISBNs.indexOf(found1[j]);
+                                            if (ISBNindex >= 0) {
+                                                ISBNs.push({
+                                                    ISBN: found1[j].trim(),
+                                                    bookbox: ret.bookboxes[ISBNindex]
+                                                });
+                                            }
                                         }
                                     }
-                                }
-                                if (ret.ISBN.length > 0) {
-                                    // Update auf BOOKSINFOS - mit "richtiger ISBN"
-                                    ret.message += ret.ISBN + ",";
-                                    let selfields = {};
-                                    let insfields = {};
-                                    let updfields = {};
-                                    selfields.ISBN = ret.ISBN;
-                                    selfields.bookbox = ret.bookbox;
-                                    insfields.ISBN = ret.ISBN;
-                                    insfields.bookbox = ret.bookbox;
-                                    updfields.bookprice = ret.price;
-                                    updfields.bookstatus = ret.bookstatus;
-                                    updfields.bookpriceisoday = new Date().toISOString().substr(0, 10);
-                                    updfields.bookreseller = "rebuy";
-                                    let reqparm = {};
-                                    reqparm.selfields = dbhelper.cloneObject(selfields);
-                                    reqparm.insfields = dbhelper.cloneObject(insfields);
-                                    reqparm.updfields = dbhelper.cloneObject(updfields);
-                                    reqparm.table = "MYBOOKSINFOS";
-                                    console.log("MYBOOKSINFOS-price-UPD-started " + ret.ISBN);
-                                    dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
-                                        console.log("MYBOOKSINFOS-price-UPD-ended " + ret.ISBN +  " " + ret1.message);
-                                        ret.error = ret1.error;
-                                        ret.message += " " + ret1.message;
+                                    if (ISBNs.length > 1) {
+                                        msg += " " + ISBNs[1].ISBN + " multipel";
+                                    }
+                                    if (ISBNs.length > 0) {
+                                        // Update auf BOOKSINFOS - mit "richtiger ISBN"
+                                        ret.message += ISBNs[0].ISBN + ",";
+
+                                        let selfields = {};
+                                        let insfields = {};
+                                        let updfields = {};
+                                        selfields.ISBN = ISBNs[0].ISBN;
+                                        selfields.bookbox = ISBNs[0].bookbox;
+                                        insfields.ISBN = ISBNs[0].ISBN;
+                                        insfields.bookbox = ISBNs[0].bookbox;
+                                        updfields.bookprice = price;
+                                        if (result.type === "nobuy" || result.type === "unknown") {
+                                            ret.bookstatus = 3;
+                                        } else {
+                                            ret.bookstatus = 2;
+                                        }
+                                        updfields.bookstatus = ret.bookstatus;
+                                        updfields.bookpriceisoday = new Date().toISOString().substr(0, 10);
+                                        updfields.bookreseller = "rebuy";
+                                        let reqparm = {};
+                                        reqparm.selfields = dbhelper.cloneObject(selfields);
+                                        reqparm.insfields = dbhelper.cloneObject(insfields);
+                                        reqparm.updfields = dbhelper.cloneObject(updfields);
+                                        reqparm.table = "MYBOOKSINFOS";
+                                        console.log("MYBOOKSINFOS-price-UPD-started " + ret.ISBN);
+                                        dbhelper.setonerecord(db, async, null, reqparm, res, function (res, ret1) {
+                                            console.log("MYBOOKSINFOS-price-UPD-ended " + ret.ISBN + " " + ret1.message);
+                                            ret.error = ret1.error;
+                                            ret.message += " " + ret1.message;
+                                            nextresult(null, res, ret);
+                                            return;
+                                        });
+                                    } else {
+                                        msg += " keine ISBN " + result.innertext;
                                         nextresult(null, res, ret);
-                                        return;
-                                    });
+                                        return;    
+                                    }
                                 } else {
-                                    ret.message += " " + ret.ISBN + " not found with " + ret.bookbox;
                                     nextresult(null, res, ret);
                                     return;
                                 }

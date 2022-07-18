@@ -335,7 +335,6 @@
                     if (vallist.lastIndexOf(",") > 0) vallist = vallist.slice(0, -1);
                     console.log(createStmt);
                     db.run(createStmt, function (err) {
-                        
                         perftimer.sor.CREATE = new Date() - perftimer.sor.start;
                         perftimer.sor.start = new Date();
                         /**
